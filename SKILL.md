@@ -60,26 +60,48 @@ Use this skill when the user wants any of the following:
 - Tighten tool, browser, subagent, Python, file-edit, plugin/cache, or Git boundaries inside a skill.
 - Convert skill prose from human-facing explanation into operational text Codex can execute.
 
+## Target Resolution
+
+Before auditing or editing, resolve exactly one target `SKILL.md`.
+
+Use this order:
+
+1. If the user provides an explicit `SKILL.md` path, use that path.
+2. If the user provides a structured skill reference with a `path`, use that path.
+3. If the current working directory contains `SKILL.md`, treat `./SKILL.md` as the target.
+4. If the user names a skill and its source-of-truth path is known, use that source-of-truth `SKILL.md`.
+5. If more than one target is plausible, stop and ask for the target path.
+
+Do not search parent directories for `SKILL.md` as a default. Unlike `AGENTS.md`, a skill file is normally scoped to one skill directory, not inherited through a directory tree.
+
+When the resolved path is under `~/.codex/plugins/cache/`, treat it as a cache copy unless the user has explicitly asked for cache repair. For cache copies:
+
+- review and suggest changes if requested
+- do not patch the cache file as the primary edit target
+- ask for or locate the source-of-truth plugin/skill directory before editing
+- if the user wants an experiment, copy the skill into a local source-of-truth skill directory first
+
 ## Audit Workflow
 
-1. Read the target `SKILL.md` completely, including YAML frontmatter.
-2. Identify the skill's intended job, triggering situations, expected inputs, expected outputs, and non-goals.
-3. Check frontmatter/body alignment:
+1. Resolve exactly one target `SKILL.md` using the Target Resolution rules.
+2. Read the target `SKILL.md` completely, including YAML frontmatter.
+3. Identify the skill's intended job, triggering situations, expected inputs, expected outputs, and non-goals.
+4. Check frontmatter/body alignment:
    - `description` must include the real trigger conditions because Codex sees it before loading the body.
    - The body must support everything the `description` promises.
    - The body must not quietly expand the skill beyond the `description` unless the `description` is updated.
-4. Check whether the execution-contract declaration is present. If missing and the user asked for edits, add it before other rewrites. If the user asked for review only, report it as the first finding and include the declaration to add.
-5. Isolate behavior-controlling sections: triggers, exclusions, workflow order, tool use, subagent use, file ownership, validation, output shape, and stop conditions.
-6. Classify issues:
+5. Check whether the execution-contract declaration is present. If missing and the user asked for edits, add it before other rewrites. If the user asked for review only, report it as the first finding and include the declaration to add.
+6. Isolate behavior-controlling sections: triggers, exclusions, workflow order, tool use, subagent use, file ownership, validation, output shape, and stop conditions.
+7. Classify issues:
    - Trigger ambiguity: Codex may fail to select the skill or may select it too broadly.
    - Body mismatch: the body does not fulfill or overextends the frontmatter `description`.
    - Workflow ambiguity: Codex can follow multiple orders or skip a required phase.
    - Boundary ambiguity: tool, file, repo, plugin/cache, or subagent responsibilities are under-specified.
    - Weak execution wording: the sentence sounds strict to a human but leaves enough discretion for non-action.
    - Scope leak: the skill tries to govern behavior outside its active skill scope.
-7. Rewrite only as much as needed to preserve the intended skill while making the action path explicit.
-8. If editing, patch the target files directly. Also update `agents/openai.yaml` when UI metadata or default prompts become stale.
-9. If reviewing only, report findings first with precise file/section references and provide tighter replacement wording.
+8. Rewrite only as much as needed to preserve the intended skill while making the action path explicit.
+9. If editing, patch the target files directly. Also update `agents/openai.yaml` when UI metadata or default prompts become stale.
+10. If reviewing only, report findings first with precise file/section references and provide tighter replacement wording.
 
 ## SKILL.md-Specific Checks
 
