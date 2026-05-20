@@ -1,0 +1,4 @@
+interface:
+  display_name: "SKILL.md 明確化監査"
+  short_description: "SKILL.md を実行契約として締める監査 skill"
+  default_prompt: "Use $skill-md-clarifier to audit a SKILL.md, align its description with its body, and rewrite weak wording into explicit execution conditions."
