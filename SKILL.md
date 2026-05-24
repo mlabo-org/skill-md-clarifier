@@ -1,6 +1,6 @@
 ---
 name: skill-md-clarifier
-description: Use when the user wants to create, review, tighten, or refactor a SKILL.md so the skill acts as an explicit execution contract rather than soft guidance. Covers frontmatter description/body alignment, trigger and non-trigger clarification, workflow hardening, tool/subagent/file-boundary rules, output-shape tightening, and converting weak skill wording into operational conditions.
+description: Use when the user wants to create, review, tighten, validate, or refactor a SKILL.md so the skill acts as an explicit execution contract rather than soft guidance. Covers frontmatter description/body alignment, trigger and non-trigger clarification, workflow hardening, reasoning and verification contract checks, tool/subagent/file-boundary rules, output-shape tightening, and converting weak skill wording into operational conditions.
 ---
 
 # SKILL.md Clarifier
@@ -54,6 +54,7 @@ Use this skill when the user wants any of the following:
 
 - Create or revise a `SKILL.md` as a Codex-readable execution contract.
 - Review a `SKILL.md` for weak wording, trigger ambiguity, workflow gaps, or hard-to-apply rules.
+- Audit a skill's operational validity, including whether it applies the applicable `AGENTS.md` reasoning and verification contract.
 - Split a skill concept out from an `AGENTS.md` policy or from another skill.
 - Clarify when a skill should trigger and when it must not trigger.
 - Align a skill's YAML frontmatter `description` with the workflow and limits in its body.
@@ -97,11 +98,13 @@ When the resolved path is under `~/.codex/plugins/cache/`, treat it as a cache c
    - Body mismatch: the body does not fulfill or overextends the frontmatter `description`.
    - Workflow ambiguity: Codex can follow multiple orders or skip a required phase.
    - Boundary ambiguity: tool, file, repo, plugin/cache, or subagent responsibilities are under-specified.
+   - Reasoning contract gap: the skill performs high-risk judgment but does not separate premises, evidence, counterevidence or exception checks, unknowns, validation results, and stop conditions.
    - Weak execution wording: the sentence sounds strict to a human but leaves enough discretion for non-action.
    - Scope leak: the skill tries to govern behavior outside its active skill scope.
-8. Rewrite only as much as needed to preserve the intended skill while making the action path explicit.
-9. If editing, patch the target files directly. Also update `agents/openai.yaml` when UI metadata or default prompts become stale.
-10. If reviewing only, report findings first with precise file/section references and provide tighter replacement wording.
+8. For skills that create, edit, repair, validate, publish, commit, refresh, install, delete, externally submit, or audit source-of-truth files, check that the skill names the evidence it must gather, the validation it must run or report as unavailable, and the conditions that require stopping instead of improvising.
+9. Rewrite only as much as needed to preserve the intended skill while making the action path explicit.
+10. If editing, patch the target files directly. Also update `agents/openai.yaml` when UI metadata or default prompts become stale.
+11. If reviewing only, report findings first with precise file/section references and provide tighter replacement wording.
 
 ## SKILL.md-Specific Checks
 
@@ -130,6 +133,27 @@ The body is the execution surface after trigger. Ensure it states:
 - validation requirements
 - output shape
 - stop or escalation conditions
+
+### Reasoning And Verification Contract
+
+When a skill performs high-risk judgment or modifies source-of-truth files, ensure the skill states how it applies the applicable `AGENTS.md` reasoning contract within the skill's own scope.
+
+Require local handling for:
+
+- root-cause debugging, review, security analysis, source editing, plugin/skill maintenance, hooks, MCP/app settings, browser/tool boundaries, external writes, deletion, persistent data changes, commits, publishing, or runtime/cache refreshes
+- claims that depend on logs, tests, generated artifacts, official docs, external pages, user-visible UI state, or repository source files
+- workflows where fallback, skip, logging, confidence scoring, persona debate, or subagent output could be mistaken for validation
+
+The skill must define, when relevant:
+
+- premises or required inputs Codex must confirm before acting
+- evidence sources such as files, logs, test output, official docs, browser observations, or user-provided material
+- counterevidence, exception, or alternate-hypothesis checks
+- unknowns that must remain visible instead of being filled by inference
+- validation commands, visual checks, readback checks, or explicit unavailable-validation reporting
+- stop conditions for unresolved source-of-truth paths, missing permissions, conflicting authorities, failed validation, cache/runtime-only targets, or unsafe side effects
+
+Do not copy the global `AGENTS.md` wholesale into a skill. Add only the skill-specific execution steps needed for Codex to obey the global contract while that skill is active. Do not require a local reasoning section for a skill with no high-risk judgment surface.
 
 ### `agents/openai.yaml`
 
@@ -196,6 +220,8 @@ Pay extra attention to these recurrent failure patterns:
 - body-only trigger rules that Codex cannot see before skill selection
 - "soft" verbs that lead to non-action
 - instructions that describe intent but not trigger conditions
+- high-risk workflows that do not separate premises, evidence, counterevidence, unknowns, validation, and stop conditions
+- confidence scores, persona debate, fallback, logging, or subagent output being treated as validation without concrete evidence
 - workflows that do not state the first action
 - tool or runtime instructions without fallback or stop conditions
 - subagent instructions that do not define ownership, context sharing, or output shape
