@@ -1,4 +1,4 @@
 interface:
   display_name: "SKILL.md 明確化監査"
   short_description: "SKILL.md を実行契約として締め、reasoning / 検証契約も監査する skill"
-  default_prompt: "Use $skill-md-clarifier to audit a SKILL.md, align its description with its body, check reasoning and verification contracts, and rewrite weak wording into explicit execution conditions."
+  default_prompt: "Use $skill-md-clarifier to audit a SKILL.md, align its description with its body and 1024-character limit, check reasoning and verification contracts, and rewrite weak wording into explicit execution conditions."

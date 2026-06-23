@@ -1,9 +1,13 @@
 ---
 name: skill-md-clarifier
-description: Use when the user wants to create, review, tighten, validate, or refactor a SKILL.md so the skill acts as an explicit execution contract rather than soft guidance. Covers frontmatter description/body alignment, trigger and non-trigger clarification, workflow hardening, reasoning and verification contract checks, tool/subagent/file-boundary rules, output-shape tightening, and converting weak skill wording into operational conditions.
+description: Use when the user wants to create, review, tighten, validate, or refactor a SKILL.md so the skill acts as an explicit execution contract rather than soft guidance. Covers frontmatter description/body alignment and 1024-character limit, trigger and non-trigger clarification, workflow hardening, reasoning and verification contract checks, tool/subagent/file-boundary rules, output-shape tightening, and converting weak skill wording into operational conditions.
 ---
 
 # SKILL.md Clarifier
+
+This `SKILL.md` is the local execution contract for this skill when the skill is selected.
+Codex must treat this file's trigger assumptions, workflow, tool boundaries, file boundaries, and output shape as binding instructions within this skill's scope.
+This file does not override system instructions, developer instructions, explicit user requests, applicable `AGENTS.md` files, or more specific local execution contracts.
 
 ## Overview
 
@@ -89,6 +93,7 @@ When the resolved path is under `~/.codex/plugins/cache/`, treat it as a cache c
 3. Identify the skill's intended job, triggering situations, expected inputs, expected outputs, and non-goals.
 4. Check frontmatter/body alignment:
    - `description` must include the real trigger conditions because Codex sees it before loading the body.
+   - The YAML frontmatter `description` value must be 1024 characters or fewer.
    - The body must support everything the `description` promises.
    - The body must not quietly expand the skill beyond the `description` unless the `description` is updated.
 5. Check whether the execution-contract declaration is present. If missing and the user asked for edits, add it before other rewrites. If the user asked for review only, report it as the first finding and include the declaration to add.
@@ -111,6 +116,7 @@ When the resolved path is under `~/.codex/plugins/cache/`, treat it as a cache c
 ### Frontmatter `description`
 
 The `description` is the trigger surface. It must be specific enough for Codex to select the skill without reading the body first.
+The YAML frontmatter `description` value must be 1024 characters or fewer. Keep trigger-critical terms in the `description`; move workflow detail, examples, and non-trigger operational rules into the body.
 
 Ensure it states:
 
@@ -217,6 +223,7 @@ Pay extra attention to these recurrent failure patterns:
 
 - `description` promises a broader workflow than the body supports
 - `description` is too narrow, so the skill will not trigger for its real use case
+- `description` grows beyond 1024 characters while trying to include every trigger detail
 - body-only trigger rules that Codex cannot see before skill selection
 - "soft" verbs that lead to non-action
 - instructions that describe intent but not trigger conditions
