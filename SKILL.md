@@ -1,6 +1,6 @@
 ---
 name: skill-md-clarifier
-description: "Use when auditing or editing SKILL.md routing metadata and execution contracts: skill creation/review/refactor, budget/truncation warnings, tool_search misses. Primary: fix description, body, agents/openai.yaml; stop on cache-only/unresolved source targets."
+description: "skill-md-clarifier: Audit SKILL.md routing metadata, execution contracts, skill budget warning/truncation resilience, and tool_search miss cases; align description, body, agents/openai.yaml; stop on cache-only or unresolved source targets."
 ---
 
 # SKILL.md Clarifier

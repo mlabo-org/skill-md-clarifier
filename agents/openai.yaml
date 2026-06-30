@@ -1,4 +1,4 @@
 interface:
   display_name: "SKILL.md 明確化監査"
-  short_description: "SKILL.md の routing metadata、truncation 耐性、実行契約、検証契約を監査する skill"
-  default_prompt: "Use $skill-md-clarifier to audit a SKILL.md for routing metadata, skill-budget/truncation resilience, tool_search discovery terms, agents/openai.yaml alignment, and explicit execution/verification conditions."
+  short_description: "skill-md-clarifier: audit SKILL.md routing metadata, skill budget warning/truncation resilience, tool_search miss cases, and agents/openai.yaml alignment."
+  default_prompt: "Use $skill-md-clarifier to audit SKILL.md routing metadata for skill budget warning/truncation resilience, tool_search miss cases, agents/openai.yaml alignment, and explicit execution/verification conditions."
