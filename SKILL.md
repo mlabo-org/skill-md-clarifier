@@ -1,6 +1,6 @@
 ---
 name: skill-md-clarifier
-description: Use when the user wants to create, review, tighten, validate, or refactor a SKILL.md so the skill acts as an explicit execution contract rather than soft guidance. Covers frontmatter description/body alignment and 1024-character limit, trigger and non-trigger clarification, workflow hardening, reasoning and verification contract checks, tool/subagent/file-boundary rules, output-shape tightening, and converting weak skill wording into operational conditions.
+description: "Use when auditing or editing SKILL.md routing metadata and execution contracts: skill creation/review/refactor, budget/truncation warnings, tool_search misses. Primary: fix description, body, agents/openai.yaml; stop on cache-only/unresolved source targets."
 ---
 
 # SKILL.md Clarifier
@@ -11,13 +11,13 @@ This file does not override system instructions, developer instructions, explici
 
 ## Overview
 
-This skill audits `SKILL.md` as a local execution contract for the skill that contains it.
-Use it to make a skill easier for Codex to trigger, load, follow, and stop using at the correct boundary.
+This skill audits `SKILL.md` as a local execution contract and routing metadata source for the skill that contains it.
+Use it to make a skill easier for Codex to discover, trigger, load, follow, and stop using at the correct boundary.
 
 ## Core Rule
 
 Treat every operative `SKILL.md` statement as an execution condition within that skill's scope unless it is clearly explanatory context, an example, or an intentionally non-binding note.
-If wording leaves escape hatches such as "consider", "prefer", "as needed", "typically", or "when useful", assume the instruction is weaker than intended unless the surrounding context clearly requires discretion.
+If wording leaves escape hatches such as "consider", bare "prefer", "as needed", "typically", or "when useful", assume the instruction is weaker than intended unless the surrounding context clearly requires discretion. Treat `prefer X over Y` as strong only when it defines an explicit precedence rule.
 
 ## Scope Boundary
 
@@ -62,6 +62,7 @@ Use this skill when the user wants any of the following:
 - Split a skill concept out from an `AGENTS.md` policy or from another skill.
 - Clarify when a skill should trigger and when it must not trigger.
 - Align a skill's YAML frontmatter `description` with the workflow and limits in its body.
+- Harden a skill's routing metadata against skills context budget truncation or `tool_search` discovery misses.
 - Tighten tool, browser, subagent, Python, file-edit, plugin/cache, or Git boundaries inside a skill.
 - Convert skill prose from human-facing explanation into operational text Codex can execute.
 
@@ -93,13 +94,18 @@ When the resolved path is under `~/.codex/plugins/cache/`, treat it as a cache c
 3. Identify the skill's intended job, triggering situations, expected inputs, expected outputs, and non-goals.
 4. Check frontmatter/body alignment:
    - `description` must include the real trigger conditions because Codex sees it before loading the body.
+   - `description` must be routing-first: the first sentence or first 160 characters must identify the task class and strongest trigger terms.
+   - The first 220 characters must remain useful if later text is truncated by the skills context budget.
    - The YAML frontmatter `description` value must be 1024 characters or fewer.
+   - For ordinary skills, a `description` over 320 characters is a routing-budget finding; over 400 characters must be compressed or explicitly justified as a temporary exception.
    - The body must support everything the `description` promises.
    - The body must not quietly expand the skill beyond the `description` unless the `description` is updated.
 5. Check whether the execution-contract declaration is present. If missing and the user asked for edits, add it before other rewrites. If the user asked for review only, report it as the first finding and include the declaration to add.
 6. Isolate behavior-controlling sections: triggers, exclusions, workflow order, tool use, subagent use, file ownership, validation, output shape, and stop conditions.
 7. Classify issues:
    - Trigger ambiguity: Codex may fail to select the skill or may select it too broadly.
+   - Routing-budget risk: the description is technically valid but too long, front-loaded poorly, or likely to lose critical terms when truncated.
+   - Discovery metadata drift: `SKILL.md`, `agents/openai.yaml`, plugin metadata, or tool descriptions use different trigger terms for the same capability.
    - Body mismatch: the body does not fulfill or overextends the frontmatter `description`.
    - Workflow ambiguity: Codex can follow multiple orders or skip a required phase.
    - Boundary ambiguity: tool, file, repo, plugin/cache, or subagent responsibilities are under-specified.
@@ -116,7 +122,7 @@ When the resolved path is under `~/.codex/plugins/cache/`, treat it as a cache c
 ### Frontmatter `description`
 
 The `description` is the trigger surface. It must be specific enough for Codex to select the skill without reading the body first.
-The YAML frontmatter `description` value must be 1024 characters or fewer. Keep trigger-critical terms in the `description`; move workflow detail, examples, and non-trigger operational rules into the body.
+The YAML frontmatter `description` value must be 1024 characters or fewer, but 1024 is only the hard format limit, not the operational target. Keep trigger-critical terms in the `description`; move workflow detail, examples, and non-trigger operational rules into the body.
 
 Ensure it states:
 
@@ -126,6 +132,40 @@ Ensure it states:
 - major exclusions when over-triggering is likely
 
 Do not hide trigger-critical conditions only in the body.
+
+### Routing Budget And Truncation Resilience
+
+Treat `description` as a budget-constrained routing index, not as a prose summary. A valid description must still route correctly if the skills context budget truncates its later text.
+
+Apply these checks to every target `SKILL.md`:
+
+- The opening clause must name the task class and primary object, such as `Audit SKILL.md`, `Build Cloudflare Workers`, or `Operate Brave EXT`.
+- The first sentence or first 160 characters must include the strongest natural-language triggers and capability names users are likely to type.
+- The first 220 characters must contain enough information to choose the skill without reading any later description text.
+- Put aliases, product names, plugin names, tool names, and failure words that drive routing near the start. Examples: `tool_search miss`, `skill budget warning`, `truncation`, `X`, `Brave EXT`, `cache/runtime drift`.
+- Do not spend the first 160 characters on generic wording such as `Use when the user wants to`, broad benefits, or implementation detail unless it carries unique trigger terms.
+- For ordinary skills, target 160-260 characters. Treat more than 320 characters as a finding to compress. Treat more than 400 characters as failing the routing-budget gate unless the review records a narrow, temporary exception.
+- The 1024-character limit is still mandatory, but satisfying it alone is not enough to pass this skill's routing audit.
+
+When rewriting a description, use this order:
+
+1. Task class and primary object.
+2. User trigger terms, including aliases and likely misspellings only when they materially affect routing.
+3. Primary route or tool/workflow the skill owns.
+4. Fallback, stop, or non-trigger boundary when it prevents wrong selection.
+
+Do not claim that one well-formed description can by itself prevent global skills-budget truncation. If the user asks about budget warnings, corpus-wide saturation, or future skill additions, report that per-skill metadata hygiene reduces damage but active skill/plugin count and total metadata volume remain separate controls.
+
+### Discovery Metadata Alignment
+
+If the target skill has adjacent metadata, check it as routing surface. Do not treat these files as UI-only copy:
+
+- `agents/openai.yaml` `interface.short_description`
+- `agents/openai.yaml` `interface.default_prompt`
+- plugin `.codex-plugin/plugin.json` `description`, `keywords`, `interface.shortDescription`, and `interface.defaultPrompt`
+- MCP tool or app tool descriptions when the skill routes to those tools
+
+These metadata surfaces must share the same core trigger terms as `SKILL.md` without becoming long summaries. If they omit the terms that would make `tool_search` or skill selection find the capability, classify it as discovery metadata drift and update or report it.
 
 ### Body
 
@@ -224,6 +264,10 @@ Pay extra attention to these recurrent failure patterns:
 - `description` promises a broader workflow than the body supports
 - `description` is too narrow, so the skill will not trigger for its real use case
 - `description` grows beyond 1024 characters while trying to include every trigger detail
+- `description` is under 1024 characters but still too long for skills context budget routing
+- trigger terms appear only after the first sentence or after the first 220 characters
+- frontmatter spends early text on workflow detail instead of routing nouns, aliases, and failure words
+- `agents/openai.yaml` still advertises old 1024-only or non-routing criteria after `SKILL.md` is tightened
 - body-only trigger rules that Codex cannot see before skill selection
 - "soft" verbs that lead to non-action
 - instructions that describe intent but not trigger conditions
