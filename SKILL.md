@@ -1,6 +1,6 @@
 ---
 name: skill-md-clarifier
-description: "skill-md-clarifier: Audit SKILL.md routing metadata, execution contracts, skill budget warning/truncation resilience, and tool_search miss cases; align description, body, agents/openai.yaml; stop on cache-only or unresolved source targets."
+description: "skill-md-clarifier: Audit SKILL.md routing metadata, production decision logic leakage, skill budget/truncation resilience, and tool_search misses; align body and agents/openai.yaml; stop on cache-only or unresolved source targets."
 ---
 
 # SKILL.md Clarifier
@@ -27,6 +27,28 @@ If wording leaves escape hatches such as "consider", bare "prefer", "as needed",
 - Do not move global policy into `SKILL.md` unless the policy applies only when this skill is active.
 - Do not use `SKILL.md` to create a second `AGENTS.md`.
 - Keep plugin-, repo-, or workflow-specific rules in the skill only when they are necessary for that skill to execute correctly.
+
+## Production Decision Logic Boundary
+
+`SKILL.md` must not contain production decision logic.
+When auditing or editing a skill, detect and split out any rule that changes artifact validity, output content, compile behavior, decoration selection, lint status, artifact freshness / stale propagation, publish / handoff readiness, or gate pass/fail status.
+
+Treat these as production decision logic, not skill prose:
+
+- keyword emphasis targets, counts, placement, or applicability
+- decoration selection rules, including when to use tables, lists, steps, frames, balloons, or theme-specific units
+- semantic paragraphing, line breaking, or section-body structural decisions
+- Markdown link to HTML link lowering rules
+- reader-perspective lint rules, including prohibited disrespectful framing
+- article-structure rules such as H2 body requirements
+- compile pass/fail, compile safety, artifact freshness, stale propagation, or gate pass/fail conditions
+
+Rules in this category must live in source code, schema, validator, state machine, compiler, generator, contract test, golden test, or an equivalent executable enforcement point.
+`SKILL.md` may name the validator, compiler, workflow-artifact check, state machine, or test suite to run, but must not define the production judgment itself.
+
+If production decision logic appears only in `SKILL.md`, README, comments, handoff notes, or UI metadata, classify it as a production decision logic leak.
+The audit must either move the rule to an executable enforcement point when editing is in scope, or report the exact rule, the missing enforcement point, and the stop condition.
+Do not mark the skill production-ready when artifact/gate behavior is prose-only.
 
 ## Execution-Contract Declaration
 
@@ -110,12 +132,14 @@ When the resolved path is under `~/.codex/plugins/cache/`, treat it as a cache c
    - Workflow ambiguity: Codex can follow multiple orders or skip a required phase.
    - Boundary ambiguity: tool, file, repo, plugin/cache, or subagent responsibilities are under-specified.
    - Reasoning contract gap: the skill performs high-risk judgment but does not separate premises, evidence, counterevidence or exception checks, unknowns, validation results, and stop conditions.
+   - Production decision logic leak: `SKILL.md` contains artifact validity, output content, compile behavior, decoration selection, freshness, or gate pass/fail judgment that lacks an executable enforcement point.
    - Weak execution wording: the sentence sounds strict to a human but leaves enough discretion for non-action.
    - Scope leak: the skill tries to govern behavior outside its active skill scope.
 8. For skills that create, edit, repair, validate, publish, commit, refresh, install, delete, externally submit, or audit source-of-truth files, check that the skill names the evidence it must gather, the validation it must run or report as unavailable, and the conditions that require stopping instead of improvising.
-9. Rewrite only as much as needed to preserve the intended skill while making the action path explicit.
-10. If editing, patch the target files directly. Also update `agents/openai.yaml` when UI metadata or default prompts become stale.
-11. If reviewing only, report findings first with precise file/section references and provide tighter replacement wording.
+9. For production decision logic leaks, separate what may remain in `SKILL.md` as routing, trigger, scope, workflow, validator names, or stop boundary from what must move into source, schema, validator, state machine, compiler, generator, or tests.
+10. Rewrite only as much as needed to preserve the intended skill while making the action path explicit.
+11. If editing, patch the target files directly. Also update `agents/openai.yaml` when UI metadata or default prompts become stale.
+12. If reviewing only, report findings first with precise file/section references and provide tighter replacement wording.
 
 ## SKILL.md-Specific Checks
 
@@ -253,6 +277,8 @@ When editing, make the patch and summarize:
 
 - whether an execution-contract declaration was added or already present
 - what frontmatter/body mismatch was fixed
+- what production decision logic was removed, moved, or flagged as prose-only
+- which executable enforcement point now owns the production rule, or why the skill remains not production-ready
 - what trigger, workflow, or boundary ambiguity was removed
 - whether `agents/openai.yaml` was updated
 - any remaining areas intentionally left flexible
@@ -269,6 +295,8 @@ Pay extra attention to these recurrent failure patterns:
 - frontmatter spends early text on workflow detail instead of routing nouns, aliases, and failure words
 - `agents/openai.yaml` still advertises old 1024-only or non-routing criteria after `SKILL.md` is tightened
 - body-only trigger rules that Codex cannot see before skill selection
+- production decision logic placed only in `SKILL.md`, README, comments, handoff notes, or UI metadata
+- validator names listed without executable source, schema, state machine, compiler, or tests that can fail invalid artifacts
 - "soft" verbs that lead to non-action
 - instructions that describe intent but not trigger conditions
 - high-risk workflows that do not separate premises, evidence, counterevidence, unknowns, validation, and stop conditions
