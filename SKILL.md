@@ -1,6 +1,6 @@
 ---
 name: skill-md-clarifier
-description: "skill-md-clarifier: Audit SKILL.md routing metadata, production decision logic leakage, skill budget/truncation resilience, and tool_search misses; align body and agents/openai.yaml; stop on cache-only or unresolved source targets."
+description: "skill-md-clarifier: Audit standalone or plugin-contained SKILL.md files, routing metadata, production decision logic leakage, plugin-skills coverage, skill budget/truncation resilience, and tool_search misses; align body and agents/openai.yaml; stop on cache-only or unresolved source targets."
 ---
 
 # SKILL.md Clarifier
@@ -13,6 +13,7 @@ This file does not override system instructions, developer instructions, explici
 
 This skill audits `SKILL.md` as a local execution contract and routing metadata source for the skill that contains it.
 Use it to make a skill easier for Codex to discover, trigger, load, follow, and stop using at the correct boundary.
+It also audits local plugin roots by resolving every plugin-contained `plugin-skills/**/SKILL.md` as an individual skill contract.
 
 ## Core Rule
 
@@ -90,15 +91,16 @@ Use this skill when the user wants any of the following:
 
 ## Target Resolution
 
-Before auditing or editing, resolve exactly one target `SKILL.md`.
+Before auditing or editing, resolve exactly one target. The target may be one `SKILL.md` or one local plugin source root whose manifest declares plugin-contained skills.
 
 Use this order:
 
 1. If the user provides an explicit `SKILL.md` path, use that path.
 2. If the user provides a structured skill reference with a `path`, use that path.
 3. If the current working directory contains `SKILL.md`, treat `./SKILL.md` as the target.
-4. If the user names a skill and its source-of-truth path is known, use that source-of-truth `SKILL.md`.
-5. If more than one target is plausible, stop and ask for the target path.
+4. If the user provides or names a local plugin source root, resolve its `.codex-plugin/plugin.json` and audit the manifest-declared skills directory, usually `plugin-skills/`.
+5. If the user names a skill and its source-of-truth path is known, use that source-of-truth `SKILL.md`.
+6. If more than one target is plausible, stop and ask for the target path.
 
 Do not search parent directories for `SKILL.md` as a default. Unlike `AGENTS.md`, a skill file is normally scoped to one skill directory, not inherited through a directory tree.
 
@@ -109,10 +111,20 @@ When the resolved path is under `~/.codex/plugins/cache/`, treat it as a cache c
 - ask for or locate the source-of-truth plugin/skill directory before editing
 - if the user wants an experiment, copy the skill into a local source-of-truth skill directory first
 
+When the resolved target is a local plugin source root:
+
+- Read `.codex-plugin/plugin.json` to confirm the plugin name, version, and declared skills path.
+- Treat the declared skills path as authoritative. If no skills path is declared but `plugin-skills/` exists, report the manifest drift and audit `plugin-skills/` as the observed local convention.
+- Enumerate every `*/SKILL.md` under the declared plugin skills directory.
+- Audit each plugin-contained `SKILL.md` independently using the normal `SKILL.md` checks.
+- Check each adjacent `agents/openai.yaml` when present.
+- Check `.codex-plugin/plugin.json` routing metadata for drift against the contained skills.
+- If no contained `SKILL.md` exists, report that the plugin has no skill contracts to audit instead of passing silently.
+
 ## Audit Workflow
 
-1. Resolve exactly one target `SKILL.md` using the Target Resolution rules.
-2. Read the target `SKILL.md` completely, including YAML frontmatter.
+1. Resolve exactly one target using the Target Resolution rules.
+2. If the target is a plugin source root, run Plugin-Contained Skill Audit first. Otherwise, read the target `SKILL.md` completely, including YAML frontmatter.
 3. Identify the skill's intended job, triggering situations, expected inputs, expected outputs, and non-goals.
 4. Check frontmatter/body alignment:
    - `description` must include the real trigger conditions because Codex sees it before loading the body.
@@ -140,6 +152,21 @@ When the resolved path is under `~/.codex/plugins/cache/`, treat it as a cache c
 10. Rewrite only as much as needed to preserve the intended skill while making the action path explicit.
 11. If editing, patch the target files directly. Also update `agents/openai.yaml` when UI metadata or default prompts become stale.
 12. If reviewing only, report findings first with precise file/section references and provide tighter replacement wording.
+
+## Plugin-Contained Skill Audit
+
+Use this mode when the target is a local plugin root or when a plugin source edit creates, changes, deletes, or moves any file matching `plugin-skills/**/SKILL.md`.
+
+1. Confirm the target is a source plugin root, not a cache copy.
+2. Read `.codex-plugin/plugin.json`.
+3. Resolve the plugin skills directory from the manifest. If the manifest omits it but `plugin-skills/` exists, flag discovery metadata drift.
+4. Enumerate `*/SKILL.md` under the plugin skills directory. Do not treat the plugin as audited if contained skills were not enumerated.
+5. For each contained `SKILL.md`, apply the normal audit workflow, including production decision logic leakage detection.
+6. For each contained skill, check adjacent `agents/openai.yaml` when present.
+7. Compare contained skill trigger terms with plugin `description`, `keywords`, `interface.shortDescription`, and `interface.defaultPrompt`.
+8. If a contained skill includes production decision logic, require an executable enforcement point in the plugin source: source code, schema, validator, state machine, compiler, generator, contract test, or golden test.
+9. If the plugin changed since the last audit and any contained `SKILL.md` was changed, deleted, or added, do not treat the plugin source edit as complete until this plugin-contained audit is complete.
+10. Report per-skill findings, plus plugin-level metadata drift and missing enforcement points.
 
 ## SKILL.md-Specific Checks
 
@@ -277,6 +304,8 @@ When editing, make the patch and summarize:
 
 - whether an execution-contract declaration was added or already present
 - what frontmatter/body mismatch was fixed
+- whether the target was a standalone skill or plugin-contained skill audit
+- which plugin-contained `SKILL.md` files were enumerated, when plugin mode was used
 - what production decision logic was removed, moved, or flagged as prose-only
 - which executable enforcement point now owns the production rule, or why the skill remains not production-ready
 - what trigger, workflow, or boundary ambiguity was removed
@@ -295,6 +324,8 @@ Pay extra attention to these recurrent failure patterns:
 - frontmatter spends early text on workflow detail instead of routing nouns, aliases, and failure words
 - `agents/openai.yaml` still advertises old 1024-only or non-routing criteria after `SKILL.md` is tightened
 - body-only trigger rules that Codex cannot see before skill selection
+- plugin-contained `plugin-skills/**/SKILL.md` changes that were not individually audited
+- plugin metadata that declares or implies skills without matching contained `SKILL.md` files
 - production decision logic placed only in `SKILL.md`, README, comments, handoff notes, or UI metadata
 - validator names listed without executable source, schema, state machine, compiler, or tests that can fail invalid artifacts
 - "soft" verbs that lead to non-action
