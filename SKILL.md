@@ -1,6 +1,6 @@
 ---
 name: skill-md-clarifier
-description: "skill-md-clarifier: Audit standalone or plugin-contained SKILL.md files, routing metadata, production decision logic leakage, plugin-skills coverage, skill budget/truncation resilience, and tool_search misses; align body and agents/openai.yaml; stop on cache-only or unresolved source targets."
+description: "Use when auditing standalone or plugin-contained SKILL.md files for routing metadata, production decision logic leakage, plugin-skills coverage, truncation resilience, tool_search misses, and agents/openai.yaml alignment."
 ---
 
 # SKILL.md Clarifier

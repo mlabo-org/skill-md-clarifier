@@ -1,4 +1,4 @@
 interface:
   display_name: "SKILL.md 明確化監査"
-  short_description: "skill-md-clarifier: audit standalone and plugin-contained SKILL.md files, production decision logic leakage, plugin-skills coverage, routing metadata, and agents/openai.yaml alignment."
-  default_prompt: "Use $skill-md-clarifier to audit standalone or plugin-contained SKILL.md files, production decision logic leakage, plugin-skills coverage, routing metadata, tool_search misses, agents/openai.yaml alignment, and explicit execution/verification conditions."
+  short_description: "Audit SKILL.md routing metadata, leakage, plugin-skills, and agents/openai.yaml alignment."
+  default_prompt: "Use $skill-md-clarifier to audit SKILL.md routing metadata, production decision logic leakage, plugin-skills coverage, tool_search discovery, and agents/openai.yaml alignment."
