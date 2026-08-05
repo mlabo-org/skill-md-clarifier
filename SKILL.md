@@ -1,6 +1,6 @@
 ---
 name: skill-md-clarifier
-description: "Use when auditing standalone or plugin-contained SKILL.md files for routing metadata, production decision logic leakage, plugin-skills coverage, truncation resilience, tool_search misses, and agents/openai.yaml alignment."
+description: "Audit standalone or plugin-contained SKILL.md files for routing metadata, production decision logic leakage, producer ownership and verification topology, plugin-skills coverage, truncation resilience, tool_search misses, and agents/openai.yaml alignment."
 ---
 
 # SKILL.md Clarifier
@@ -145,6 +145,7 @@ When the resolved target is a local plugin source root:
    - Boundary ambiguity: tool, file, repo, plugin/cache, or subagent responsibilities are under-specified.
    - Reasoning contract gap: the skill performs high-risk judgment but does not separate premises, evidence, counterevidence or exception checks, unknowns, validation results, and stop conditions.
    - Production decision logic leak: `SKILL.md` contains artifact validity, output content, compile behavior, decoration selection, freshness, or gate pass/fail judgment that lacks an executable enforcement point.
+   - Producer-quality / verification-topology defect: the skill defers semantic quality to a later layer, launders or duplicates a binding check, or adds a same-decision post-success gate.
    - Weak execution wording: the sentence sounds strict to a human but leaves enough discretion for non-action.
    - Scope leak: the skill tries to govern behavior outside its active skill scope.
 8. For skills that create, edit, repair, validate, publish, commit, refresh, install, delete, externally submit, or audit source-of-truth files, check that the skill names the evidence it must gather, the validation it must run or report as unavailable, and the conditions that require stopping instead of improvising.
@@ -251,6 +252,22 @@ The skill must define, when relevant:
 - stop conditions for unresolved source-of-truth paths, missing permissions, conflicting authorities, failed validation, cache/runtime-only targets, or unsafe side effects
 
 Do not copy the global `AGENTS.md` wholesale into a skill. Add only the skill-specific execution steps needed for Codex to obey the global contract while that skill is active. Do not require a local reasoning section for a skill with no high-risk judgment surface.
+
+### Producer Quality And Verification Topology
+
+The authoring producer owns first-pass semantic quality. An applicable `skill-md-clarifier` run is an explicitly selected maintenance audit that confirms the final contract after a `SKILL.md` edit; it is not a recurring application/output gate or a substitute producer.
+
+Classify a producer-quality / verification-topology defect when the target:
+
+- defines `draft -> review/validator -> repair` as the normal successful path, or intentionally leaves known semantic requirements for a downstream layer
+- performs gate relabeling or binding-check laundering by calling a binding check review, audit, advisory, optional, or another name while it still controls the same completion decision
+- serializes duplicate semantic bundles over the same evidence, implementation path, and decision
+- adds a post-success second layer without distinct new evidence that would change the decision
+- permits lower-layer first-pass bypass by a skill, validator, test, or workflow that weakens a higher-priority producer-quality or minimum-verification rule
+
+Accept a coherent first pass followed by one minimum verification bundle containing the binding checks, primary-path evidence, and task-evidenced distinct failures. A failed check may trigger repair of the affected scope and a targeted rerun. Do not flag the single applicable clarifier maintenance audit merely because it follows editing; flag reliance on that audit to create semantics, duplication of its decision, or an added post-success layer. Do not require an ordinary bounded skill with no high-risk judgment surface to add a generic reasoning checklist, reviewer, validator, or second gate.
+
+When this defect appears, assign semantic production to the producer, consolidate same-decision checks into the minimum bundle, and remove unsupported post-success layers. This category audits responsibility and verification topology; artifact-specific production judgment remains subject to the Production Decision Logic Boundary.
 
 ### `agents/openai.yaml`
 
