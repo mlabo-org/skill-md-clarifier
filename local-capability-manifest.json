@@ -1,0 +1,42 @@
+{
+  "manifestVersion": "local-capability-manifest/v1",
+  "publisher": "suzuki-makoto",
+  "packageKind": "standalone-skill",
+  "packageId": "skill-md-clarifier",
+  "descriptorVersion": "1.0.0",
+  "capabilities": [
+    {
+      "leafId": "audit-edit-skill-md",
+      "title": "Audit or Edit a SKILL.md Execution Contract",
+      "description": "Resolve one exact standalone SKILL.md or local plugin source root, then audit it or apply requested contract-tightening edits according to the authoritative skill-md-clarifier skill.",
+      "executionClass": "host_model_with_tools",
+      "runtimeBinding": {
+        "kind": "host_model_with_tools",
+        "instruction": "Select $skill-md-clarifier, read its authoritative SKILL.md completely, and then read the resolved target SKILL.md or local plugin root before work. Follow the authoritative audit or edit workflow for input.operation. Resolve only input.target.skillPath or input.target.pluginRoot; do not infer another target. Inspect input.knownConcerns as declared focus, but do not treat it as a substitute for the complete target audit. For an edit, make only target-scoped, user-requested source changes and preserve unrelated work. Return a complete first handoff satisfying the declared output schema: findings, changes, metadata alignment, enforcement ownership, and validation evidence. Stop with a typed stop result if the target is ambiguous, unavailable, cache-only, or conflicts with higher authority; do not invent a fallback target, enforcement point, or tool result.",
+        "allowedTools": [
+          "exec_command",
+          "apply_patch"
+        ]
+      },
+      "authorityRequests": [
+        {
+          "authority": "filesystem_write",
+          "reason": "Only when operation is edit, apply user-authorized target-scoped changes to the resolved source-of-truth SKILL.md and directly stale adjacent metadata."
+        }
+      ],
+      "artifactRoots": [],
+      "inputSchema": {
+        "schemaVersion": "local-capability-schema/v1",
+        "schemaId": "skill-md-clarifier/audit-edit-skill-md-input/v1",
+        "path": "schemas/local-capability/audit-edit-skill-md-input.schema.json"
+      },
+      "outputSchema": {
+        "schemaVersion": "local-capability-schema/v1",
+        "schemaId": "skill-md-clarifier/audit-edit-skill-md-output/v1",
+        "path": "schemas/local-capability/audit-edit-skill-md-output.schema.json"
+      },
+      "inputPorts": [],
+      "outputPorts": []
+    }
+  ]
+}

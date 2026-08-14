@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "skill-md-clarifier/audit-edit-skill-md-input/v1",
+  "title": "SKILL.md Clarifier Input",
+  "description": "A request to audit or edit exactly one standalone SKILL.md or one local plugin source root containing skill contracts.",
+  "type": "object",
+  "required": [
+    "target",
+    "operation"
+  ],
+  "properties": {
+    "target": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "skillPath"
+          ],
+          "properties": {
+            "skillPath": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The exact filesystem path to one source-of-truth SKILL.md file."
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "pluginRoot"
+          ],
+          "properties": {
+            "pluginRoot": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The exact filesystem path to one local plugin source root."
+            }
+          },
+          "additionalProperties": false
+        }
+      ],
+      "description": "Exactly one target kind. A plugin root is audited through its manifest-declared contained SKILL.md contracts."
+    },
+    "operation": {
+      "enum": [
+        "audit",
+        "edit"
+      ],
+      "description": "Audit reports findings without modifying sources; edit applies only requested, target-scoped source changes."
+    },
+    "knownConcerns": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true,
+      "default": [],
+      "description": "Known issues or focus areas supplied by the caller; the authoritative skill still determines the complete required audit."
+    }
+  },
+  "additionalProperties": false
+}

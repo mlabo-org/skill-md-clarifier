@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "skill-md-clarifier/audit-edit-skill-md-output/v1",
+  "title": "SKILL.md Clarifier Output",
+  "description": "The completed result of auditing or editing one standalone SKILL.md or one local plugin source root.",
+  "type": "object",
+  "required": [
+    "findings",
+    "changes",
+    "metadata",
+    "enforcement",
+    "validation"
+  ],
+  "properties": {
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "category",
+          "issue",
+          "whyItWeakensExecution",
+          "location",
+          "tighterRewrite"
+        ],
+        "properties": {
+          "category": {
+            "enum": [
+              "trigger_ambiguity",
+              "routing_budget_risk",
+              "discovery_metadata_drift",
+              "body_mismatch",
+              "workflow_ambiguity",
+              "boundary_ambiguity",
+              "reasoning_contract_gap",
+              "production_decision_logic_leak",
+              "producer_quality_verification_topology_defect",
+              "weak_execution_wording",
+              "scope_leak"
+            ]
+          },
+          "issue": {
+            "type": "string",
+            "minLength": 1
+          },
+          "whyItWeakensExecution": {
+            "type": "string",
+            "minLength": 1
+          },
+          "location": {
+            "type": "string",
+            "minLength": 1
+          },
+          "tighterRewrite": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "summary"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      "description": "Empty for an audit or when no target-scoped edit was necessary."
+    },
+    "metadata": {
+      "type": "object",
+      "required": [
+        "targetKind",
+        "executionContractDeclaration",
+        "agentsOpenaiYaml"
+      ],
+      "properties": {
+        "targetKind": {
+          "enum": [
+            "standalone_skill",
+            "plugin_root"
+          ]
+        },
+        "executionContractDeclaration": {
+          "enum": [
+            "added",
+            "already_present",
+            "missing"
+          ]
+        },
+        "agentsOpenaiYaml": {
+          "enum": [
+            "updated",
+            "already_aligned",
+            "absent",
+            "not_applicable"
+          ]
+        },
+        "pluginSkills": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Every contained SKILL.md enumerated when targetKind is plugin_root; empty otherwise."
+        }
+      },
+      "additionalProperties": false
+    },
+    "enforcement": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "status",
+          "ruleOrConcern"
+        ],
+        "properties": {
+          "status": {
+            "enum": [
+              "not_applicable",
+              "enforced",
+              "prose_only",
+              "moved_or_flagged"
+            ]
+          },
+          "ruleOrConcern": {
+            "type": "string",
+            "minLength": 1
+          },
+          "enforcementPoint": {
+            "type": "string",
+            "minLength": 1
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      "description": "Records each relevant production decision logic rule and its executable enforcement ownership, or why none applies."
+    },
+    "validation": {
+      "type": "object",
+      "required": [
+        "authoritativeSkillRead",
+        "targetResolved",
+        "targetRead",
+        "checks"
+      ],
+      "properties": {
+        "authoritativeSkillRead": {
+          "const": true
+        },
+        "targetResolved": {
+          "const": true
+        },
+        "targetRead": {
+          "const": true
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "status"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "enum": [
+                  "passed",
+                  "unverified"
+                ]
+              },
+              "detail": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
