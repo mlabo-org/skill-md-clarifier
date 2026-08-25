@@ -35,7 +35,7 @@ GitHub へ反映します。インストール済みコピーや実行コピー�
 clone します。
 
 ```bash
-git clone https://github.com/mlabo-org/skill-md-clarifier.git ~/.codex/skills/skill-md-clarifier
+git clone https://github.com/mlabo-org/skill-md-clarifier.git ~/.agents/skills/skill-md-clarifier
 ```
 
 インストール後は Codex を再起動するか、新しいタスクを開始してください。この
@@ -101,7 +101,7 @@ For a normal direct installation, clone the public repository into the Codex
 standalone-skill directory:
 
 ```bash
-git clone https://github.com/mlabo-org/skill-md-clarifier.git ~/.codex/skills/skill-md-clarifier
+git clone https://github.com/mlabo-org/skill-md-clarifier.git ~/.agents/skills/skill-md-clarifier
 ```
 
 Restart Codex or begin a new task after installation. In this installation model,
