@@ -13,21 +13,23 @@
 - `SKILL.md`、`agents/openai.yaml`、プラグインメタデータ、ツール説明のずれ
 - プラグイン内スキルの網羅性と、ソース・キャッシュ・実行環境の境界
 - 実行可能な強制箇所を持たない production decision logic
-- producer ownership、verification topology、推論、ワークフロー、停止条件
+- スキル固有の担当範囲、推論・ワークフロー・停止条件の漏れ
 - `tool_search` の未検出、過剰発火、発火不足、スコープ漏れ
+- native validator による決定的な構造・メタデータ検査
 
 UI メタデータは簡潔に保ち、成果物の有効性に関する判断は、ソース、スキーマ、
 validator、compiler、state machine、またはテストなどの実行可能な箇所に置きます。
 
-### 正本、ローカル実行版、GitHub
+### 正本と discovery entry
 
-この Git checkout がメンテナ開発の正本です。ローカルで有効な Codex スキルと
-GitHub の `origin` は、どちらもこの正本から保守し、別々の実装ではなく、同等の
-スキルとして保ちます。
+この Git checkout が、メンテナ開発の物理正本であり、ローカルで有効な Codex
+skill の discovery entry です。別の standalone runtime copy や同期用の正本は
+作りません。GitHub の `origin` は、この checkout から公開する別ライフサイクルの
+統合先です。
 
-変更はこの checkout で行い、同じ Git 状態をローカル実行版へ refresh して
-GitHub へ反映します。インストール済みコピーや実行コピーを独立した正本として
-直接編集しません。
+変更はこの checkout に適用します。Codex が source directory を直接 discovery
+するため、インストール済みコピーや実行コピーを独立した正本として編集したり、
+別の runtime へ反映したりしません。
 
 ### インストール
 
@@ -52,6 +54,24 @@ $skill-md-clarifier を使って、この SKILL.md を監査・改訂し、ル�
 隣接メタデータを読み、依頼された編集またはレビューの範囲だけを扱い、実装上の強制箇所と
 検証境界を報告します。
 
+### native validator
+
+決定的な検査は materialized binary を直接呼び出します。
+
+```bash
+./bin/darwin-arm64/skill-md-clarifier-validator <skill-root-or-SKILL.md>
+```
+
+終了コードは、`0` が決定的検査の成功、`1` が検出事項あり、`2` が使い方・
+読み取り・解析エラーです。validator が未 materialize の場合は、checkout の
+ルートで次を実行して生成します。
+
+```bash
+cargo build --locked --release
+mkdir -p bin/darwin-arm64
+install -m 755 target/release/skill-md-clarifier-validator bin/darwin-arm64/skill-md-clarifier-validator
+```
+
 ### リポジトリ構成
 
 ```text
@@ -59,6 +79,18 @@ $skill-md-clarifier を使って、この SKILL.md を監査・改訂し、ル�
 ├── SKILL.md
 ├── agents/
 │   └── openai.yaml
+├── local-capability-manifest.json
+├── schemas/
+│   └── local-capability/
+│       ├── audit-edit-skill-md-input.schema.json
+│       └── audit-edit-skill-md-output.schema.json
+├── Cargo.toml
+├── Cargo.lock
+├── src/
+├── tests/
+├── bin/
+│   └── darwin-arm64/
+│       └── skill-md-clarifier-validator
 ├── LICENSE
 └── README.md
 ```
@@ -78,22 +110,23 @@ MIT
 - drift across `SKILL.md`, `agents/openai.yaml`, plugin metadata, and tool descriptions
 - plugin-contained skill coverage and source/cache/runtime boundaries
 - production decision logic that lacks executable enforcement
-- producer ownership, verification topology, reasoning, workflow, and stop conditions
+- skill-specific ownership, reasoning, workflow, and stop-condition gaps
 - `tool_search` misses, over-triggering, under-triggering, and scope leakage
+- deterministic structural and metadata checks through the native validator
 
 The skill keeps UI metadata concise and leaves artifact-validity decisions in
 executable source, schemas, validators, compilers, state machines, or tests.
 
-### Source of truth, local runtime, and GitHub
+### Source of truth and discovery entry
 
-This Git checkout is the authoritative source for maintainer development. The
-locally active Codex skill and the GitHub `origin` are both maintained from this
-source so that they remain equivalent versions of the skill rather than separate
-implementations.
+This Git checkout is both the physical source of truth for maintainer development
+and the discovery entry for the locally active Codex skill. No separate standalone
+runtime copy or synchronization source is created. GitHub `origin` is a separate
+publication and integration lifecycle for this checkout.
 
-Make changes in this checkout, refresh the local runtime from the same Git state,
-and publish that state to GitHub. Do not edit an installed or runtime copy as an
-independent source of truth.
+Make changes in this checkout. Codex discovers the source directory directly, so do
+not edit an installed or runtime copy as an independent source of truth or propagate
+the result to another runtime.
 
 ### Installation
 
@@ -117,6 +150,24 @@ The skill resolves one standalone skill or one plugin root, reads the selected
 contract and adjacent metadata, applies only the requested edit or review scope,
 and reports enforcement and validation boundaries.
 
+### Native validator
+
+Run the materialized binary directly for deterministic checks:
+
+```bash
+./bin/darwin-arm64/skill-md-clarifier-validator <skill-root-or-SKILL.md>
+```
+
+Exit code `0` means the deterministic checks pass, `1` means findings were
+detected, and `2` means a usage, read, or parse failure. If the validator has not
+been materialized, build it from the checkout root:
+
+```bash
+cargo build --locked --release
+mkdir -p bin/darwin-arm64
+install -m 755 target/release/skill-md-clarifier-validator bin/darwin-arm64/skill-md-clarifier-validator
+```
+
 ### Repository layout
 
 ```text
@@ -124,6 +175,18 @@ and reports enforcement and validation boundaries.
 ├── SKILL.md
 ├── agents/
 │   └── openai.yaml
+├── local-capability-manifest.json
+├── schemas/
+│   └── local-capability/
+│       ├── audit-edit-skill-md-input.schema.json
+│       └── audit-edit-skill-md-output.schema.json
+├── Cargo.toml
+├── Cargo.lock
+├── src/
+├── tests/
+├── bin/
+│   └── darwin-arm64/
+│       └── skill-md-clarifier-validator
 ├── LICENSE
 └── README.md
 ```

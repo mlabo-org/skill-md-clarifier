@@ -1,4 +1,4 @@
 interface:
   display_name: "SKILL.md 明確化監査"
-  short_description: "Audit SKILL.md routing, ownership, verification topology, and metadata alignment."
-  default_prompt: "Use $skill-md-clarifier to audit SKILL.md routing metadata, production decision logic leakage, producer ownership and verification topology, plugin-skills coverage, tool_search discovery, and agents/openai.yaml alignment."
+  short_description: "Audit SKILL.md routing, truncation, plugin skills, production-logic leaks, metadata drift, and native validator results."
+  default_prompt: "Use $skill-md-clarifier to audit or revise one SKILL.md or plugin root for routing and truncation, plugin-contained skills, production decision logic leaks, tool/file/cache boundaries, metadata drift, tool_search discovery, and native validator alignment."

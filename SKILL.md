@@ -1,6 +1,6 @@
 ---
 name: skill-md-clarifier
-description: "Audit standalone or plugin-contained SKILL.md files for routing metadata, production decision logic leakage, producer ownership and verification topology, plugin-skills coverage, truncation resilience, tool_search misses, and agents/openai.yaml alignment."
+description: "Audit or edit standalone and plugin-contained SKILL.md routing/truncation, target-domain production-logic leaks, tool/file/cache boundaries, tool_search misses, and agents/openai.yaml metadata drift. Uses the bundled native validator for deterministic checks."
 ---
 
 # SKILL.md Clarifier
@@ -11,347 +11,172 @@ This file does not override system instructions, developer instructions, explici
 
 ## Overview
 
-This skill audits `SKILL.md` as a local execution contract and routing metadata source for the skill that contains it.
-Use it to make a skill easier for Codex to discover, trigger, load, follow, and stop using at the correct boundary.
-It also audits local plugin roots by resolving every plugin-contained `plugin-skills/**/SKILL.md` as an individual skill contract.
-
-## Core Rule
-
-Treat every operative `SKILL.md` statement as an execution condition within that skill's scope unless it is clearly explanatory context, an example, or an intentionally non-binding note.
-If wording leaves escape hatches such as "consider", bare "prefer", "as needed", "typically", or "when useful", assume the instruction is weaker than intended unless the surrounding context clearly requires discretion. Treat `prefer X over Y` as strong only when it defines an explicit precedence rule.
+Audit or edit exactly one standalone `SKILL.md` or one local plugin source root containing skill contracts.
+This skill owns `SKILL.md`-specific routing, target resolution, metadata alignment, tool and file boundaries, target-domain production-logic leakage detection, and the audit output shape.
+The bundled native validator owns deterministic routing and metadata checks.
 
 ## Scope Boundary
 
 `SKILL.md` is not a global constitution. It binds Codex only after the skill is selected or explicitly invoked.
 
-- Do not make a `SKILL.md` claim authority over system instructions, developer instructions, explicit user requests, applicable `AGENTS.md` files, or more specific local execution contracts.
-- Do not move global policy into `SKILL.md` unless the policy applies only when this skill is active.
-- Do not use `SKILL.md` to create a second `AGENTS.md`.
-- Keep plugin-, repo-, or workflow-specific rules in the skill only when they are necessary for that skill to execute correctly.
+- Read the applicable `AGENTS.md` before auditing or editing and report only concrete conflicts between that authority and the target.
+- Do not restate cross-cutting reasoning, acceptance, delegation, Git, or safety policy inside a target `SKILL.md`.
+- Do not require a target skill to duplicate higher-authority rules merely to pass this audit.
+- Keep only skill-specific triggers, workflow mechanics, tool and file boundaries, validation routes, output contracts, and stop conditions in a target skill.
+- Use `agents-md-clarifier`, not this skill, when the target to create or revise is an `AGENTS.md`.
 
-## Production Decision Logic Boundary
+## Target-Domain Production Logic
 
-`SKILL.md` must not contain production decision logic.
-When auditing or editing a skill, detect and split out any rule that changes artifact validity, output content, compile behavior, decoration selection, lint status, artifact freshness / stale propagation, publish / handoff readiness, or gate pass/fail status.
+Detect rules in the target skill that decide the validity or content of the target workflow's production artifact, including compile behavior, decoration or content selection, lint status, freshness, publication readiness, or target-domain gate outcomes.
 
-Treat these as production decision logic, not skill prose:
+When such a rule exists only in `SKILL.md`, README text, comments, handoff notes, or UI metadata:
 
-- keyword emphasis targets, counts, placement, or applicability
-- decoration selection rules, including when to use tables, lists, steps, frames, balloons, or theme-specific units
-- semantic paragraphing, line breaking, or section-body structural decisions
-- Markdown link to HTML link lowering rules
-- reader-perspective lint rules, including prohibited disrespectful framing
-- article-structure rules such as H2 body requirements
-- compile pass/fail, compile safety, artifact freshness, stale propagation, or gate pass/fail conditions
+1. Identify the exact target-domain decision and the artifact or completion state it controls.
+2. Locate its executable owner in source, schema, validator, compiler, generator, state machine, contract test, or golden test.
+3. If no owner exists, report a production-logic leak and the missing enforcement point.
+4. When editing is authorized, move the rule only into the authoritative executable owner; keep routing, invocation, and stop instructions in `SKILL.md`.
+5. Stop short of declaring the target production-ready while an identified artifact-validity rule remains prose-only.
 
-Rules in this category must live in source code, schema, validator, state machine, compiler, generator, contract test, golden test, or an equivalent executable enforcement point.
-`SKILL.md` may name the validator, compiler, workflow-artifact check, state machine, or test suite to run, but must not define the production judgment itself.
-
-If production decision logic appears only in `SKILL.md`, README, comments, handoff notes, or UI metadata, classify it as a production decision logic leak.
-The audit must either move the rule to an executable enforcement point when editing is in scope, or report the exact rule, the missing enforcement point, and the stop condition.
-Do not mark the skill production-ready when artifact/gate behavior is prose-only.
-
-## Execution-Contract Declaration
-
-When a target `SKILL.md` lacks an equivalent declaration that it is the execution contract for that skill, add one near the start of the body before tightening individual rules.
-
-- Insert after YAML frontmatter and the H1 title if present.
-- Do not duplicate an equivalent declaration. Treat "execution contract", "binding instructions", "local operating contract", or "source of truth for this skill" as equivalent when it clearly binds Codex behavior.
-- Preserve priority order. The declaration must not claim authority over higher-priority instructions or applicable `AGENTS.md` files.
-
-Use this template unless the target needs narrower wording:
-
-```md
-This `SKILL.md` is the local execution contract for this skill when the skill is selected.
-Codex must treat this file's trigger assumptions, workflow, tool boundaries, file boundaries, and output shape as binding instructions within this skill's scope.
-This file does not override system instructions, developer instructions, explicit user requests, applicable `AGENTS.md` files, or more specific local execution contracts.
-```
-
-Japanese template:
-
-```md
-この `SKILL.md` は、この skill が選択された場合に適用される局所実行契約である。
-Codex は、本書の発火前提、作業手順、ツール境界、ファイル境界、出力形式を、この skill のスコープ内で拘束力のある実行条件として扱う。
-本書は、システム指示、開発者指示、ユーザーの明示要求、適用される `AGENTS.md`、より局所の実行契約を上書きしない。
-```
+This boundary concerns the target workflow's production semantics. The clarifier's own audit categories are skill-domain mechanics, and its deterministic subset is implemented by the bundled native validator rather than recalculated from prose.
 
 ## When To Use
 
-Use this skill when the user wants any of the following:
+Use this skill to:
 
-- Create or revise a `SKILL.md` as a Codex-readable execution contract.
-- Review a `SKILL.md` for weak wording, trigger ambiguity, workflow gaps, or hard-to-apply rules.
-- Audit a skill's operational validity, including whether it applies the applicable `AGENTS.md` reasoning and verification contract.
-- Split a skill concept out from an `AGENTS.md` policy or from another skill.
-- Clarify when a skill should trigger and when it must not trigger.
-- Align a skill's YAML frontmatter `description` with the workflow and limits in its body.
-- Harden a skill's routing metadata against skills context budget truncation or `tool_search` discovery misses.
-- Tighten tool, browser, subagent, Python, file-edit, plugin/cache, or Git boundaries inside a skill.
-- Convert skill prose from human-facing explanation into operational text Codex can execute.
+- create or revise a `SKILL.md` as a Codex-readable local execution contract
+- review weak triggers, routing-budget problems, truncation risk, workflow gaps, or hard-to-apply wording
+- align frontmatter with `agents/openai.yaml`, plugin metadata, or tool descriptions
+- diagnose `tool_search` misses, over-triggering, under-triggering, or body-only trigger terms
+- audit plugin-contained skills through the plugin manifest's declared skills directory
+- separate target-domain production decisions from routing and invocation prose
+- tighten skill-specific browser, subagent, Python, file-edit, plugin/cache, or Git mechanics
+
+Do not select this skill for general prose editing, an `AGENTS.md` audit, or an application artifact whose owning workflow has no `SKILL.md` contract in scope.
 
 ## Target Resolution
 
-Before auditing or editing, resolve exactly one target. The target may be one `SKILL.md` or one local plugin source root whose manifest declares plugin-contained skills.
+Resolve exactly one target before reading or editing target files:
 
-Use this order:
+1. Use an explicit `SKILL.md` path supplied by the user.
+2. Otherwise use a structured skill reference containing a path.
+3. Otherwise, if the current directory contains `SKILL.md`, use that file.
+4. Otherwise use an explicitly named local plugin source root and its `.codex-plugin/plugin.json`.
+5. Otherwise use a named skill's verified source-of-truth path.
+6. If more than one target remains plausible, stop and ask for the exact target.
 
-1. If the user provides an explicit `SKILL.md` path, use that path.
-2. If the user provides a structured skill reference with a `path`, use that path.
-3. If the current working directory contains `SKILL.md`, treat `./SKILL.md` as the target.
-4. If the user provides or names a local plugin source root, resolve its `.codex-plugin/plugin.json` and audit the manifest-declared skills directory, usually `plugin-skills/`.
-5. If the user names a skill and its source-of-truth path is known, use that source-of-truth `SKILL.md`.
-6. If more than one target is plausible, stop and ask for the target path.
+Do not search parent directories for a target `SKILL.md` by default.
 
-Do not search parent directories for `SKILL.md` as a default. Unlike `AGENTS.md`, a skill file is normally scoped to one skill directory, not inherited through a directory tree.
+For a plugin root:
 
-When the resolved path is under `~/.codex/plugins/cache/`, treat it as a cache copy unless the user has explicitly asked for cache repair. For cache copies:
+- read `.codex-plugin/plugin.json`
+- resolve its string `skills` path as a contained relative directory
+- recursively enumerate every `SKILL.md` below that directory, regardless of nesting depth or directory name
+- audit every enumerated skill and its adjacent `agents/openai.yaml` when present
+- report an empty declared skills directory as a finding rather than silently passing it
 
-- review and suggest changes if requested
-- do not patch the cache file as the primary edit target
-- ask for or locate the source-of-truth plugin/skill directory before editing
-- if the user wants an experiment, copy the skill into a local source-of-truth skill directory first
+### Cache And Experiment Boundary
 
-When the resolved target is a local plugin source root:
+Treat a path under `/Users/suzukimakoto/.codex/plugins/cache/` as generated plugin runtime cache.
 
-- Read `.codex-plugin/plugin.json` to confirm the plugin name, version, and declared skills path.
-- Treat the declared skills path as authoritative. If no skills path is declared but `plugin-skills/` exists, report the manifest drift and audit `plugin-skills/` as the observed local convention.
-- Enumerate every `*/SKILL.md` under the declared plugin skills directory.
-- Audit each plugin-contained `SKILL.md` independently using the normal `SKILL.md` checks.
-- Check each adjacent `agents/openai.yaml` when present.
-- Check `.codex-plugin/plugin.json` routing metadata for drift against the contained skills.
-- If no contained `SKILL.md` exists, report that the plugin has no skill contracts to audit instead of passing silently.
+- A review may cite observed cache bytes, but an edit must resolve the authoritative plugin source first.
+- Do not copy a cache skill into `/Users/suzukimakoto/.agents/skills/` under the same identity.
+- For an explicitly requested experiment, use a separate non-discovery temporary directory, or create a distinctly named standalone skill only when the user authorizes that new source identity.
+- Do not create a source-to-runtime copy or refresh workflow for a standalone skill. Its directory under `/Users/suzukimakoto/.agents/skills/` is both source and USER-scope discovery entry.
 
-## Audit Workflow
+## Native Validator
 
-1. Resolve exactly one target using the Target Resolution rules.
-2. If the target is a plugin source root, run Plugin-Contained Skill Audit first. Otherwise, read the target `SKILL.md` completely, including YAML frontmatter.
-3. Identify the skill's intended job, triggering situations, expected inputs, expected outputs, and non-goals.
-4. Check frontmatter/body alignment:
-   - `description` must include the real trigger conditions because Codex sees it before loading the body.
-   - `description` must be routing-first: the first sentence or first 160 characters must identify the task class and strongest trigger terms.
-   - The first 220 characters must remain useful if later text is truncated by the skills context budget.
-   - The YAML frontmatter `description` value must be 1024 characters or fewer.
-   - For ordinary skills, a `description` over 320 characters is a routing-budget finding; over 400 characters must be compressed or explicitly justified as a temporary exception.
-   - The body must support everything the `description` promises.
-   - The body must not quietly expand the skill beyond the `description` unless the `description` is updated.
-5. Check whether the execution-contract declaration is present. If missing and the user asked for edits, add it before other rewrites. If the user asked for review only, report it as the first finding and include the declaration to add.
-6. Isolate behavior-controlling sections: triggers, exclusions, workflow order, tool use, subagent use, file ownership, validation, output shape, and stop conditions.
-7. Classify issues:
-   - Trigger ambiguity: Codex may fail to select the skill or may select it too broadly.
-   - Routing-budget risk: the description is technically valid but too long, front-loaded poorly, or likely to lose critical terms when truncated.
-   - Discovery metadata drift: `SKILL.md`, `agents/openai.yaml`, plugin metadata, or tool descriptions use different trigger terms for the same capability.
-   - Body mismatch: the body does not fulfill or overextends the frontmatter `description`.
-   - Workflow ambiguity: Codex can follow multiple orders or skip a required phase.
-   - Boundary ambiguity: tool, file, repo, plugin/cache, or subagent responsibilities are under-specified.
-   - Reasoning contract gap: the skill performs high-risk judgment but does not separate premises, evidence, counterevidence or exception checks, unknowns, validation results, and stop conditions.
-   - Production decision logic leak: `SKILL.md` contains artifact validity, output content, compile behavior, decoration selection, freshness, or gate pass/fail judgment that lacks an executable enforcement point.
-   - Producer-quality / verification-topology defect: the skill defers semantic quality to a later layer, launders or duplicates a binding check, or adds a same-decision post-success gate.
-   - Weak execution wording: the sentence sounds strict to a human but leaves enough discretion for non-action.
-   - Scope leak: the skill tries to govern behavior outside its active skill scope.
-8. For skills that create, edit, repair, validate, publish, commit, refresh, install, delete, externally submit, or audit source-of-truth files, check that the skill names the evidence it must gather, the validation it must run or report as unavailable, and the conditions that require stopping instead of improvising.
-9. For production decision logic leaks, separate what may remain in `SKILL.md` as routing, trigger, scope, workflow, validator names, or stop boundary from what must move into source, schema, validator, state machine, compiler, generator, or tests.
-10. Rewrite only as much as needed to preserve the intended skill while making the action path explicit.
-11. If editing, patch the target files directly. Also update `agents/openai.yaml` when UI metadata or default prompts become stale.
-12. If reviewing only, report findings first with precise file/section references and provide tighter replacement wording.
+Use the materialized validator at:
 
-## Plugin-Contained Skill Audit
+```text
+<skill-md-clarifier-root>/bin/darwin-arm64/skill-md-clarifier-validator
+```
 
-Use this mode when the target is a local plugin root or when a plugin source edit creates, changes, deletes, or moves any file matching `plugin-skills/**/SKILL.md`.
+Invoke it directly with one standalone skill root, one `SKILL.md`, or one plugin root:
 
-1. Confirm the target is a source plugin root, not a cache copy.
-2. Read `.codex-plugin/plugin.json`.
-3. Resolve the plugin skills directory from the manifest. If the manifest omits it but `plugin-skills/` exists, flag discovery metadata drift.
-4. Enumerate `*/SKILL.md` under the plugin skills directory. Do not treat the plugin as audited if contained skills were not enumerated.
-5. For each contained `SKILL.md`, apply the normal audit workflow, including production decision logic leakage detection.
-6. For each contained skill, check adjacent `agents/openai.yaml` when present.
-7. Compare contained skill trigger terms with plugin `description`, `keywords`, `interface.shortDescription`, and `interface.defaultPrompt`.
-8. If a contained skill includes production decision logic, require an executable enforcement point in the plugin source: source code, schema, validator, state machine, compiler, generator, contract test, or golden test.
-9. If the plugin changed since the last audit and any contained `SKILL.md` was changed, deleted, or added, do not treat the plugin source edit as complete until this plugin-contained audit is complete.
-10. Report per-skill findings, plus plugin-level metadata drift and missing enforcement points.
+```bash
+./bin/darwin-arm64/skill-md-clarifier-validator <skill-root-or-SKILL.md>
+```
 
-## SKILL.md-Specific Checks
+The validator owns deterministic checks for target kind, plugin manifest skills-path containment and recursive enumeration, YAML frontmatter parsing, description routing budget, generic description openings, execution-contract declaration presence, cache-only targets, and adjacent `agents/openai.yaml` structure.
 
-### Frontmatter `description`
+Exit status is part of the contract:
 
-The `description` is the trigger surface. It must be specific enough for Codex to select the skill without reading the body first.
-The YAML frontmatter `description` value must be 1024 characters or fewer, but 1024 is only the hard format limit, not the operational target. Keep trigger-critical terms in the `description`; move workflow detail, examples, and non-trigger operational rules into the body.
+- `0`: deterministic checks passed
+- `1`: deterministic findings were emitted as JSON
+- `2`: usage, target resolution, read, or parse failure was emitted as JSON
 
-Ensure it states:
+Do not use `cargo run` as the normal route. If the materialized binary is absent after source changes, stop the runtime claim and materialize it from this skill root:
 
-- what the skill does
-- concrete user requests or task contexts that trigger it
-- key file types, systems, or workflows it covers
-- major exclusions when over-triggering is likely
+```bash
+cargo build --locked --release
+mkdir -p bin/darwin-arm64
+install -m 755 target/release/skill-md-clarifier-validator bin/darwin-arm64/skill-md-clarifier-validator
+```
 
-Do not hide trigger-critical conditions only in the body.
+For a review-only request, run the validator once on the current target and incorporate its receipt.
+For an edit request, inspect the current source directly, construct the complete requested edit, then run the validator once against the final target bytes as the deterministic validation assigned to this skill.
 
-### Routing Budget And Truncation Resilience
+## Audit And Edit Workflow
 
-Treat `description` as a budget-constrained routing index, not as a prose summary. A valid description must still route correctly if the skills context budget truncates its later text.
+1. Resolve the target and confirm its source/cache boundary.
+2. Read the target `SKILL.md` completely. In plugin mode, read the manifest and every recursively enumerated contained `SKILL.md`.
+3. Identify the skill's task class, natural-language triggers, inputs, complete outputs, primary tool or workflow, non-use boundary, and stop conditions.
+4. Incorporate the native validator receipt at the point specified above.
+5. Check the semantic surfaces the validator cannot decide:
+   - frontmatter/body promise alignment
+   - strongest trigger terms appearing early enough to route before body load
+   - alignment across `SKILL.md`, `agents/openai.yaml`, plugin metadata, and exposed tool descriptions
+   - `tool_search` terms, aliases, product names, and failure words needed for discovery
+   - unambiguous workflow order and first action
+   - exact tool, browser, file, source/cache, external-effect, and stop boundaries
+   - target-domain production rules and their executable enforcement points
+   - concrete conflicts with applicable higher authority, without copying that authority into the skill
+6. When editing is authorized, update only the resolved source target and directly stale adjacent metadata. Do not change target-domain artifact semantics unless the request includes that owning source.
+7. Report the completed result in the required output shape. If the target cannot be resolved or safely edited, return a typed stop result instead of inventing a target or enforcement point.
 
-Apply these checks to every target `SKILL.md`:
+## Routing And Metadata Alignment
 
-- The opening clause must name the task class and primary object, such as `Audit SKILL.md`, `Build Cloudflare Workers`, or `Operate Brave EXT`.
-- The first sentence or first 160 characters must include the strongest natural-language triggers and capability names users are likely to type.
-- The first 220 characters must contain enough information to choose the skill without reading any later description text.
-- Put aliases, product names, plugin names, tool names, and failure words that drive routing near the start. Examples: `tool_search miss`, `skill budget warning`, `truncation`, `X`, `Brave EXT`, `cache/runtime drift`.
-- Do not spend the first 160 characters on generic wording such as `Use when the user wants to`, broad benefits, or implementation detail unless it carries unique trigger terms.
-- For ordinary skills, target 160-260 characters. Treat more than 320 characters as a finding to compress. Treat more than 400 characters as failing the routing-budget gate unless the review records a narrow, temporary exception.
-- The 1024-character limit is still mandatory, but satisfying it alone is not enough to pass this skill's routing audit.
+Treat frontmatter `description` as the pre-load routing surface and `agents/openai.yaml` as concise UI/routing support, not the execution contract.
 
-When rewriting a description, use this order:
+- Put the task class and primary object first.
+- Keep aliases, product names, tool names, file types, and failure terms that materially drive selection near the beginning.
+- Keep workflow detail and non-trigger instructions in the body.
+- Ensure the body implements every capability promised by the description.
+- Ensure `interface.short_description` and `interface.default_prompt` share the core trigger terms without copying the body.
+- Ensure `interface.default_prompt` names the skill explicitly.
+- Do not claim that one description alone can prevent corpus-wide skills-budget truncation; active skill count and total metadata volume remain separate facts to report when relevant.
 
-1. Task class and primary object.
-2. User trigger terms, including aliases and likely misspellings only when they materially affect routing.
-3. Primary route or tool/workflow the skill owns.
-4. Fallback, stop, or non-trigger boundary when it prevents wrong selection.
+The native validator owns deterministic length, opening, and required-field decisions. Do not duplicate those numeric rules here.
 
-Do not claim that one well-formed description can by itself prevent global skills-budget truncation. If the user asks about budget warnings, corpus-wide saturation, or future skill additions, report that per-skill metadata hygiene reduces damage but active skill/plugin count and total metadata volume remain separate controls.
+## Editing Boundary
 
-### Discovery Metadata Alignment
-
-If the target skill has adjacent metadata, check it as routing surface. Do not treat these files as UI-only copy:
-
-- `agents/openai.yaml` `interface.short_description`
-- `agents/openai.yaml` `interface.default_prompt`
-- plugin `.codex-plugin/plugin.json` `description`, `keywords`, `interface.shortDescription`, and `interface.defaultPrompt`
-- MCP tool or app tool descriptions when the skill routes to those tools
-
-These metadata surfaces must share the same core trigger terms as `SKILL.md` without becoming long summaries. If they omit the terms that would make `tool_search` or skill selection find the capability, classify it as discovery metadata drift and update or report it.
-
-### Body
-
-The body is the execution surface after trigger. Ensure it states:
-
-- first action after trigger
-- required files or resources to read
-- ordered workflow
-- exact tool or runtime boundaries when they matter
-- what to edit and what not to edit
-- validation requirements
-- output shape
-- stop or escalation conditions
-
-### Reasoning And Verification Contract
-
-When a skill performs high-risk judgment or modifies source-of-truth files, ensure the skill states how it applies the applicable `AGENTS.md` reasoning contract within the skill's own scope.
-
-Require local handling for:
-
-- root-cause debugging, review, security analysis, source editing, plugin/skill maintenance, hooks, MCP/app settings, browser/tool boundaries, external writes, deletion, persistent data changes, commits, publishing, or runtime/cache refreshes
-- claims that depend on logs, tests, generated artifacts, official docs, external pages, user-visible UI state, or repository source files
-- workflows where fallback, skip, logging, confidence scoring, persona debate, or subagent output could be mistaken for validation
-
-The skill must define, when relevant:
-
-- premises or required inputs Codex must confirm before acting
-- evidence sources such as files, logs, test output, official docs, browser observations, or user-provided material
-- counterevidence, exception, or alternate-hypothesis checks
-- unknowns that must remain visible instead of being filled by inference
-- validation commands, visual checks, readback checks, or explicit unavailable-validation reporting
-- stop conditions for unresolved source-of-truth paths, missing permissions, conflicting authorities, failed validation, cache/runtime-only targets, or unsafe side effects
-
-Do not copy the global `AGENTS.md` wholesale into a skill. Add only the skill-specific execution steps needed for Codex to obey the global contract while that skill is active. Do not require a local reasoning section for a skill with no high-risk judgment surface.
-
-### Producer Quality And Verification Topology
-
-The authoring producer owns first-pass semantic quality. An applicable `skill-md-clarifier` run is an explicitly selected maintenance audit that confirms the final contract after a `SKILL.md` edit; it is not a recurring application/output gate or a substitute producer.
-
-Classify a producer-quality / verification-topology defect when the target:
-
-- defines `draft -> review/validator -> repair` as the normal successful path, or intentionally leaves known semantic requirements for a downstream layer
-- performs gate relabeling or binding-check laundering by calling a binding check review, audit, advisory, optional, or another name while it still controls the same completion decision
-- serializes duplicate semantic bundles over the same evidence, implementation path, and decision
-- adds a post-success second layer without distinct new evidence that would change the decision
-- permits lower-layer first-pass bypass by a skill, validator, test, or workflow that weakens a higher-priority producer-quality or minimum-verification rule
-
-Accept a coherent first pass followed by one minimum verification bundle containing the binding checks, primary-path evidence, and task-evidenced distinct failures. A failed check may trigger repair of the affected scope and a targeted rerun. Do not flag the single applicable clarifier maintenance audit merely because it follows editing; flag reliance on that audit to create semantics, duplication of its decision, or an added post-success layer. Do not require an ordinary bounded skill with no high-risk judgment surface to add a generic reasoning checklist, reviewer, validator, or second gate.
-
-When this defect appears, assign semantic production to the producer, consolidate same-decision checks into the minimum bundle, and remove unsupported post-success layers. This category audits responsibility and verification topology; artifact-specific production judgment remains subject to the Production Decision Logic Boundary.
-
-### `agents/openai.yaml`
-
-Treat `agents/openai.yaml` as UI metadata, not the execution contract.
-
-- Keep `display_name`, `short_description`, and `default_prompt` aligned with `SKILL.md`.
-- Do not put binding execution rules only in `agents/openai.yaml`.
-- If `SKILL.md` changes the skill's purpose, update stale UI metadata.
-
-## Wording Rules
-
-Prefer verbs that directly constrain execution:
-
-- Strong: `use`, `do not use`, `treat as`, `must`, `always`, `only when`, `unless`, `first`, `after`, `before`, `prefer X over Y`, `if A, do B`
-- Weak: `consider`, `review`, `ideally`, `generally`, `basically`, `as needed`, `if appropriate`, `candidate`, `recommended`, `desirable`
-
-When tightening wording:
-
-- Replace weak modality with explicit triggers and outcomes.
-- Replace vague sequencing with ordered steps.
-- Replace overlapping responsibilities with named boundaries.
-- Replace "may" style language unless the flexibility is intentional and necessary.
-- Keep exceptions explicit and narrow.
-- Keep `SKILL.md` concise enough to load as operational context.
-
-## What To Preserve
-
-Do not rewrite for style alone.
-Preserve the original:
-
-- intended skill scope
-- user intent
-- priority order
-- safety constraints
-- local terminology
-- established resource paths and scripts
-- progressive-disclosure structure
-
-Only strengthen wording when it reduces interpretive drift without changing policy.
+- Add the execution-contract declaration near the start only when an equivalent declaration is absent.
+- Preserve the intended skill scope, user intent, priority order, safety constraints, local terminology, and authoritative resource paths.
+- Rewrite only what is needed to remove an observed routing, workflow, metadata, boundary, or target-domain enforcement defect.
+- Update adjacent `agents/openai.yaml` only when it is missing or stale for the changed capability.
+- Never edit plugin cache as the primary source.
+- Do not create a second audit, reviewer, or validator for a decision already owned by the native validator or an applicable higher contract.
 
 ## Output Shape
 
-When reviewing, output:
+For a review, return each finding with:
 
-- the issue
+- issue and category
 - why it weakens execution
-- the exact section or line reference
-- a tighter rewrite
+- exact file and location
+- tighter replacement wording or the executable owner required
+- native-validator receipt and any unavailable semantic evidence
 
-When editing, make the patch and summarize:
+For an edit, return:
 
-- whether an execution-contract declaration was added or already present
-- what frontmatter/body mismatch was fixed
-- whether the target was a standalone skill or plugin-contained skill audit
-- which plugin-contained `SKILL.md` files were enumerated, when plugin mode was used
-- what production decision logic was removed, moved, or flagged as prose-only
-- which executable enforcement point now owns the production rule, or why the skill remains not production-ready
-- what trigger, workflow, or boundary ambiguity was removed
-- whether `agents/openai.yaml` was updated
-- any remaining areas intentionally left flexible
+- changed authoritative paths
+- standalone or plugin-root target kind
+- plugin-contained `SKILL.md` paths enumerated in plugin mode
+- execution-contract declaration state
+- routing/body/metadata/boundary defects fixed
+- target-domain production rules moved, enforced, or still prose-only
+- `agents/openai.yaml` state
+- native-validator command, status, and materialized binary path
+- typed stop reason when completion is impossible
 
-## Special Attention Areas
-
-Pay extra attention to these recurrent failure patterns:
-
-- `description` promises a broader workflow than the body supports
-- `description` is too narrow, so the skill will not trigger for its real use case
-- `description` grows beyond 1024 characters while trying to include every trigger detail
-- `description` is under 1024 characters but still too long for skills context budget routing
-- trigger terms appear only after the first sentence or after the first 220 characters
-- frontmatter spends early text on workflow detail instead of routing nouns, aliases, and failure words
-- `agents/openai.yaml` still advertises old 1024-only or non-routing criteria after `SKILL.md` is tightened
-- body-only trigger rules that Codex cannot see before skill selection
-- plugin-contained `plugin-skills/**/SKILL.md` changes that were not individually audited
-- plugin metadata that declares or implies skills without matching contained `SKILL.md` files
-- production decision logic placed only in `SKILL.md`, README, comments, handoff notes, or UI metadata
-- validator names listed without executable source, schema, state machine, compiler, or tests that can fail invalid artifacts
-- "soft" verbs that lead to non-action
-- instructions that describe intent but not trigger conditions
-- high-risk workflows that do not separate premises, evidence, counterevidence, unknowns, validation, and stop conditions
-- confidence scores, persona debate, fallback, logging, or subagent output being treated as validation without concrete evidence
-- workflows that do not state the first action
-- tool or runtime instructions without fallback or stop conditions
-- subagent instructions that do not define ownership, context sharing, or output shape
-- file-edit instructions that do not define the source-of-truth directory
-- skill text that tries to override global `AGENTS.md`
-- output requirements that are described as preferences rather than deliverable conditions
+When invoked through `local-capability-manifest.json`, serialize the result against `skill-md-clarifier/audit-edit-skill-md-output/v2`. Use its `completed` and `stopped` branches exactly; do not coerce a stop into a completed result.

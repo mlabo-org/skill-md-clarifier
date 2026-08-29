@@ -1,0 +1,21 @@
+[package]
+name = "skill-md-clarifier-validator"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Deterministic validator for skill-md-clarifier routing and metadata checks"
+
+[dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+serde_yaml = "0.9.34"
+
+[dev-dependencies]
+jsonschema = { version = "0.49.9", default-features = false }
+tempfile = "3.23.0"
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+panic = "abort"

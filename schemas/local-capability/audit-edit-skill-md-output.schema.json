@@ -1,17 +1,28 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "skill-md-clarifier/audit-edit-skill-md-output/v1",
+  "$id": "skill-md-clarifier/audit-edit-skill-md-output/v2",
   "title": "SKILL.md Clarifier Output",
   "description": "The completed result of auditing or editing one standalone SKILL.md or one local plugin source root.",
   "type": "object",
   "required": [
-    "findings",
+    "resultStatus",
+    "operation",
     "changes",
-    "metadata",
     "enforcement",
     "validation"
   ],
   "properties": {
+    "resultStatus": {
+      "enum": ["completed", "stopped"]
+    },
+    "operation": {
+      "enum": ["audit", "edit"]
+    },
+    "stopReason": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Required only when resultStatus is stopped."
+    },
     "findings": {
       "type": "array",
       "items": {
@@ -86,7 +97,8 @@
       "required": [
         "targetKind",
         "executionContractDeclaration",
-        "agentsOpenaiYaml"
+        "agentsOpenaiYaml",
+        "pluginSkills"
       ],
       "properties": {
         "targetKind": {
@@ -116,10 +128,21 @@
             "type": "string",
             "minLength": 1
           },
+          "uniqueItems": true,
           "description": "Every contained SKILL.md enumerated when targetKind is plugin_root; empty otherwise."
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {"properties": {"targetKind": {"const": "standalone_skill"}}},
+          "then": {"properties": {"pluginSkills": {"const": []}}}
+        },
+        {
+          "if": {"properties": {"targetKind": {"const": "plugin_root"}}},
+          "then": {"properties": {"pluginSkills": {"type": "array", "uniqueItems": true}}}
+        }
+      ]
     },
     "enforcement": {
       "type": "array",
@@ -151,7 +174,21 @@
             "minLength": 1
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {"properties": {"status": {"const": "enforced"}}},
+            "then": {"required": ["enforcementPoint"]}
+          },
+          {
+            "if": {"properties": {"status": {"const": "prose_only"}}},
+            "then": {"required": ["detail"]}
+          },
+          {
+            "if": {"properties": {"status": {"const": "moved_or_flagged"}}},
+            "then": {"required": ["enforcementPoint", "detail"]}
+          }
+        ]
       },
       "description": "Records each relevant production decision logic rule and its executable enforcement ownership, or why none applies."
     },
@@ -165,13 +202,13 @@
       ],
       "properties": {
         "authoritativeSkillRead": {
-          "const": true
+          "type": "boolean"
         },
         "targetResolved": {
-          "const": true
+          "type": "boolean"
         },
         "targetRead": {
-          "const": true
+          "type": "boolean"
         },
         "checks": {
           "type": "array",
@@ -203,5 +240,44 @@
       "additionalProperties": false
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {"properties": {"resultStatus": {"const": "completed"}}},
+      "then": {
+        "required": ["findings", "metadata"],
+        "properties": {
+          "validation": {
+            "properties": {
+              "authoritativeSkillRead": {"const": true},
+              "targetResolved": {"const": true},
+              "targetRead": {"const": true}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "resultStatus": {"const": "completed"},
+          "operation": {"const": "audit"}
+        }
+      },
+      "then": {"properties": {"changes": {"const": []}}}
+    },
+    {
+      "if": {"properties": {"resultStatus": {"const": "stopped"}}},
+      "then": {
+        "properties": {
+          "changes": {"const": []},
+          "enforcement": {"const": []},
+          "validation": {
+            "properties": {}
+          }
+        },
+        "required": ["stopReason"]
+      }
+    }
+  ]
 }
