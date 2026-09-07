@@ -8,7 +8,7 @@
     {
       "leafId": "audit-edit-skill-md",
       "title": "Audit or Edit a SKILL.md Execution Contract",
-      "description": "Resolve one exact standalone SKILL.md or local plugin source root, run the bundled native validator for deterministic routing and metadata checks, then audit it or apply requested contract-tightening edits according to the authoritative skill-md-clarifier skill.",
+      "description": "Resolve one standalone SKILL.md or local plugin source root and audit interpretation drift, workflow clarity, and policy preservation using the shared criteria. Apply requested source edits before final semantic acceptance and native routing/metadata validation according to skill-md-clarifier.",
       "executionClass": "host_model_with_tools",
       "runtimeBinding": {
         "kind": "host_model_with_tools",

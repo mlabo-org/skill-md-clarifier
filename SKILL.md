@@ -1,6 +1,6 @@
 ---
 name: skill-md-clarifier
-description: "Audit or edit standalone and plugin-contained SKILL.md routing/truncation, target-domain production-logic leaks, tool/file/cache boundaries, tool_search misses, and agents/openai.yaml metadata drift. Uses the bundled native validator for deterministic checks."
+description: "Audit/edit standalone or plugin SKILL.md for interpretation drift (解釈ぶれ), policy-preserving workflow clarity, routing/truncation, production-logic leaks, tool/file/cache boundaries, and metadata drift. Use the bundled native validator for deterministic checks."
 ---
 
 # SKILL.md Clarifier
@@ -14,6 +14,12 @@ This file does not override system instructions, developer instructions, explici
 Audit or edit exactly one standalone `SKILL.md` or one local plugin source root containing skill contracts.
 This skill owns `SKILL.md`-specific routing, target resolution, metadata alignment, tool and file boundaries, target-domain production-logic leakage detection, and the audit output shape.
 The bundled native validator owns deterministic routing and metadata checks.
+
+## Shared Clarity Criteria
+
+Before authoring or auditing, read [指示文の解釈を揃える基準](references/instruction-clarity.md). This skill owns that single source resource; `agents-md-clarifier` also consumes it. Keep shared criteria there and skill-specific application here.
+
+Apply them to the selected skill's first action, required inputs, branch and fallback conditions, tool/producer ownership, complete output, handoff, and end state. Keep user-required actions binding, including instructions phrased as "推奨"; preserve only explicitly granted choices. In edit mode, use these criteria as authoring inputs before constructing the complete candidate. Final clarification is read-only: combine the native receipt with the semantic decision on those final bytes, without editing during that decision. Any failed admitted decision follows the applicable AGENTS.md recovery rule, not a routine rewrite pass.
 
 ## Scope Boundary
 
@@ -121,17 +127,18 @@ For an edit request, inspect the current source directly, construct the complete
 1. Resolve the target and confirm its source/cache boundary.
 2. Read the target `SKILL.md` completely. In plugin mode, read the manifest and every recursively enumerated contained `SKILL.md`.
 3. Identify the skill's task class, natural-language triggers, inputs, complete outputs, primary tool or workflow, non-use boundary, and stop conditions.
-4. Incorporate the native validator receipt at the point specified above.
-5. Check the semantic surfaces the validator cannot decide:
+4. In edit mode, construct the complete authorized source candidate using all loaded requirements, including Shared Clarity Criteria. Change only the resolved source target, in-scope supporting resources, and directly stale adjacent metadata. Do not change target-domain artifact semantics unless the request includes that owning source. In review mode, keep the current target unchanged.
+5. Run and incorporate the native validator receipt for the current review target or completed edit candidate as specified in Native Validator.
+6. Check the semantic surfaces the validator cannot decide, read-only on those same bytes:
    - frontmatter/body promise alignment
    - strongest trigger terms appearing early enough to route before body load
    - alignment across `SKILL.md`, `agents/openai.yaml`, plugin metadata, and exposed tool descriptions
    - `tool_search` terms, aliases, product names, and failure words needed for discovery
-   - unambiguous workflow order and first action
+   - workflow and first-action clarity under Shared Clarity Criteria, including concrete input-to-output decisions and any interpretation-changing missing relation
    - exact tool, browser, file, source/cache, external-effect, and stop boundaries
    - target-domain production rules and their executable enforcement points
    - concrete conflicts with applicable higher authority, without copying that authority into the skill
-6. When editing is authorized, update only the resolved source target and directly stale adjacent metadata. Do not change target-domain artifact semantics unless the request includes that owning source.
+   - preservation of policy strength, permitted discretion, exception scope, and completion boundaries when editing
 7. Report the completed result in the required output shape. If the target cannot be resolved or safely edited, return a typed stop result instead of inventing a target or enforcement point.
 
 ## Routing And Metadata Alignment
@@ -164,8 +171,10 @@ For a review, return each finding with:
 - issue and category
 - why it weakens execution
 - exact file and location
-- tighter replacement wording or the executable owner required
+- source-grounded replacement wording, the executable owner required, or the unresolved policy decision under the shared criteria's output branch
 - native-validator receipt and any unavailable semantic evidence
+
+For an interpretation finding, use those existing fields to state the concrete condition, source location, competing actions or missing relation, and the meaning preserved by the proposed rewrite. When the policy is unresolved, put that decision in `tighterRewrite` instead of supplying invented conditions. Separate document-based decision evidence from actual model execution evidence; the native validator does not measure model comprehension or guarantee behavior across models.
 
 For an edit, return:
 
