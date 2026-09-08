@@ -1,6 +1,6 @@
 ---
 name: skill-md-clarifier
-description: "Audit/edit standalone or plugin SKILL.md for interpretation drift (解釈ぶれ), policy-preserving workflow clarity, routing/truncation, production-logic leaks, tool/file/cache boundaries, and metadata drift. Use the bundled native validator for deterministic checks."
+description: "Audit/edit SKILL.md or plugin skills: 解釈ぶれ, routing, context-budget warnings, metadata, and ownership. Native validator."
 ---
 
 # SKILL.md Clarifier
@@ -13,7 +13,7 @@ This file does not override system instructions, developer instructions, explici
 
 Audit or edit exactly one standalone `SKILL.md` or one local plugin source root containing skill contracts.
 This skill owns `SKILL.md`-specific routing, target resolution, metadata alignment, tool and file boundaries, target-domain production-logic leakage detection, and the audit output shape.
-The bundled native validator owns deterministic routing and metadata checks.
+The bundled native validator owns deterministic routing, metadata, and whole-host catalog budget admission. Read the host-budget section before authoring, not for the first time after producing a candidate.
 
 ## Shared Clarity Criteria
 
@@ -100,10 +100,10 @@ Use the materialized validator at:
 Invoke it directly with one standalone skill root, one `SKILL.md`, or one plugin root:
 
 ```bash
-./bin/darwin-arm64/skill-md-clarifier-validator <skill-root-or-SKILL.md>
+./bin/darwin-arm64/skill-md-clarifier-validator <source-target> --rollout <target-host-rollout> --expected-skills <complete-host-count> --context-window <resolved-model-window>
 ```
 
-The validator owns deterministic checks for target kind, plugin manifest skills-path containment and recursive enumeration, YAML frontmatter parsing, description routing budget, generic description openings, execution-contract declaration presence, cache-only targets, and adjacent `agents/openai.yaml` structure.
+The validator owns deterministic checks for target kind, plugin manifest skills-path containment and recursive enumeration, YAML frontmatter parsing, the individual format limit, whole-host metadata budget, generic description openings, execution-contract declaration presence, cache-only targets, and adjacent `agents/openai.yaml` structure. Missing host budget evidence is an error by default. `--structure-only` explicitly limits inspection to structure and cannot establish routing acceptance, a warning-free environment, or readiness of a newly created skill.
 
 Exit status is part of the contract:
 
@@ -119,15 +119,31 @@ mkdir -p bin/darwin-arm64
 install -m 755 target/release/skill-md-clarifier-validator bin/darwin-arm64/skill-md-clarifier-validator
 ```
 
-For a review-only request, run the validator once on the current target and incorporate its receipt.
-For an edit request, inspect the current source directly, construct the complete requested edit, then run the validator once against the final target bytes as the deterministic validation assigned to this skill.
+For a review-only request, run the validator on the current target and incorporate its receipt. For creation or edits, the pre-production invocation allocates capacity; the final invocation verifies the candidate against that capacity and the same host evidence. These answer distinct questions in the single acceptance bundle. No intervening critique/rewrite loop is added.
+
+## Whole-Host Budget Before Production
+
+The executable calculation follows [Codex rust-v0.153.4 render.rs](https://github.com/openai/codex/blob/rust-v0.153.4/codex-rs/ext/skills/src/render.rs) and the [official skills documentation](https://learn.chatgpt.com/docs/build-skills). The initial catalog, not each file separately, shares the budget. The validator uses per-line UTF-8 byte costs for token budgets, Unicode scalar counts for the unknown-window fallback, and the captured host alias table and its overhead. It counts complete descriptions, names, paths, separators, and newlines. It does not use an English/Japanese character multiplier as a substitute for counting the actual text. Version-pinned named constants in `src/budget.rs` own the shared-budget percentage, explicit cap, unknown-context fallback, UTF-8 token approximation, and individual format limit. The model context window is a runtime input, never a fixed model-size constant. Update those constants against the official source when adopting a changed specification; do not duplicate numeric rules in prose.
+
+1. Resolve the target host, cwd, CLI version, and actual resolved model context window from current model metadata/configuration. The smaller usable window reported by token usage is not the resolved window. A configured skills token override is supplied only when it actually exists, using `--max-context-tokens`. Use `--unknown-context` only when current evidence cannot resolve the window; do not silently replace a known window with the fallback or alter runtime settings to obtain a pass.
+2. Obtain the actual host Skills fragment with its root aliases, names, and paths. The native `--rollout` reader extracts only the latest developer Skills fragment from the exact authorized local session; `--host-prompt` accepts an already captured fragment. Establish completeness for that host and pass `--expected-skills`. A catalog with omitted skills, unknown additional environment/orchestrator catalogs, inaccessible sources, or uncertain completeness cannot receive a warning-free result. The App Server `skills/list` response alone is insufficient: it can omit plugin-provided entries present in the actual prompt. Do not scan unrelated sessions or copy private conversation contents into source.
+3. Before changing an existing skill, use that source target with the host evidence to obtain `targetDescriptionAllowance`. For a new skill, reserve its actual catalog name and future absolute `SKILL.md` path without creating a file:
+   ```bash
+   ./bin/darwin-arm64/skill-md-clarifier-validator /absolute/new-skill/SKILL.md --plan-new new-skill --host-prompt /absolute/host-skills.txt --expected-skills <count> --context-window <window>
+   ```
+   Give the producer that available budget in its reported units, the intended host/cwd, and required trigger words before authoring. A zero allowance or existing total overflow must be reported as a capacity blocker; shortening just the new skill cannot fix pre-existing overflow. New plugin entries need their actual namespaced names and runtime paths reserved; do not substitute an unqualified source name.
+4. The validator rereads full descriptions from the captured files, so it never mistakes already-shortened prompt text for the original cost. For an installed plugin source edit, map each audited source path to its corresponding captured runtime path with repeated `--map SOURCE=RUNTIME`. Do not guess by matching names, double-count the source plus cache, or edit the cache. Report source admission separately from subsequent authorized materialization and the live host's uptake. A snapshot applies only to its host/cwd and catalog membership; changes require fresh host evidence. Unsupported locator formats fail explicitly.
+5. Meaning preservation is mandatory for every compression. Before authoring, bind the original task meaning, scope, applicable and excluded cases, distinctions from neighboring skills, required invocation terms in their original language, and strength of constraints as producer inputs. Never satisfy the budget by losing, weakening, broadening, or changing those meanings; never translate Japanese invocation terms away to save bytes. Move workflow detail, examples, or repeated explanation into the body or existing references only when selection-critical meaning remains available in the pre-load description. A distinction restored only after loading the body does not repair an ambiguous routing description. If a complete meaning-preserving description cannot fit, report the capacity blocker and leave the affected original unchanged; do not force a shorter candidate. `uniformExistingPrefixCharacters`, ASCII, and three-byte-Japanese figures are capacity measurements, not automatic truncation instructions or universal limits.
+6. Accept only the final complete catalog fitting without description truncation or skill omission and without target findings. Missing evidence, a format-limit violation, or total overflow is not a pass merely because the CLI can still run. Do not hide warnings, change their colors, increase limits, disable skills, or rewrite other skills to force success without corresponding user authority. Existing environment overflow can remain a reported blocker even when a separately requested validator implementation repair is delivered; never report that the warning disappeared without actual host evidence.
+
+The supported comparison is the captured host filesystem catalog under the pinned renderer semantics. For a changed CLI renderer, root layout, or additional resource catalogs, resolve that difference before claiming exact parity. No fixed per-description length guarantees a fit at every skill count. The official individual format maximum is not a recommended authoring length.
 
 ## Audit And Edit Workflow
 
 1. Resolve the target and confirm its source/cache boundary.
 2. Read the target `SKILL.md` completely. In plugin mode, read the manifest and every recursively enumerated contained `SKILL.md`.
 3. Identify the skill's task class, natural-language triggers, inputs, complete outputs, primary tool or workflow, non-use boundary, and stop conditions.
-4. In edit mode, construct the complete authorized source candidate using all loaded requirements, including Shared Clarity Criteria. Change only the resolved source target, in-scope supporting resources, and directly stale adjacent metadata. Do not change target-domain artifact semantics unless the request includes that owning source. In review mode, keep the current target unchanged.
+4. In edit mode, supply the measured whole-host capacity and Shared Clarity Criteria before constructing the complete authorized source candidate. Change only the resolved source target, in-scope supporting resources, and directly stale adjacent metadata. Do not change target-domain artifact semantics unless the request includes that owning source. In review mode, keep the current target unchanged.
 5. Run and incorporate the native validator receipt for the current review target or completed edit candidate as specified in Native Validator.
 6. Check the semantic surfaces the validator cannot decide, read-only on those same bytes:
    - frontmatter/body promise alignment
@@ -139,6 +155,7 @@ For an edit request, inspect the current source directly, construct the complete
    - target-domain production rules and their executable enforcement points
    - concrete conflicts with applicable higher authority, without copying that authority into the skill
    - preservation of policy strength, permitted discretion, exception scope, and completion boundaries when editing
+   - for compression, compare the final description and any relocated content with the original semantic inputs: no lost or changed task meaning, applicability, exclusions, neighboring-skill distinctions, invocation terms, or constraint strength; fitting the numeric budget alone cannot pass this decision. This is part of this same semantic acceptance, not an added review or rewrite loop.
 7. Report the completed result in the required output shape. If the target cannot be resolved or safely edited, return a typed stop result instead of inventing a target or enforcement point.
 
 ## Routing And Metadata Alignment
@@ -151,7 +168,7 @@ Treat frontmatter `description` as the pre-load routing surface and `agents/open
 - Ensure the body implements every capability promised by the description.
 - Ensure `interface.short_description` and `interface.default_prompt` share the core trigger terms without copying the body.
 - Ensure `interface.default_prompt` names the skill explicitly.
-- Do not claim that one description alone can prevent corpus-wide skills-budget truncation; active skill count and total metadata volume remain separate facts to report when relevant.
+- Whole-host capacity is required for routing acceptance; an individually valid description cannot substitute for that result. Preserve Japanese and other actual invocation terms while removing non-routing detail.
 
 The native validator owns deterministic length, opening, and required-field decisions. Do not duplicate those numeric rules here.
 
@@ -173,6 +190,7 @@ For a review, return each finding with:
 - exact file and location
 - source-grounded replacement wording, the executable owner required, or the unresolved policy decision under the shared criteria's output branch
 - native-validator receipt and any unavailable semantic evidence
+- host/cwd, evidence scope, budget units and limit, full catalog cost and count, remaining capacity or excess, and source/runtime distinction; absent evidence is unverified, never warning-free
 
 For an interpretation finding, use those existing fields to state the concrete condition, source location, competing actions or missing relation, and the meaning preserved by the proposed rewrite. When the policy is unresolved, put that decision in `tighterRewrite` instead of supplying invented conditions. Separate document-based decision evidence from actual model execution evidence; the native validator does not measure model comprehension or guarantee behavior across models.
 

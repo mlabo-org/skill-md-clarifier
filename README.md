@@ -34,6 +34,8 @@
 レビュー依頼は読み取り専用で、指摘と根拠を返します。編集を依頼された場合にだけ正本を変更します。
 共通基準の導入によって、別の監査工程、モデル比較、自動的な書き直しループは増えません。
 
+予算は単体の文字数だけでなく、対象ホストの実際の一覧全体で判定します。既定ではホストの入力とモデルのコンテキスト長が必要です。日本語の呼び出し語を保持し、説明の短縮・欠落が必要な状態を合格にしません。新規作成前は `--plan-new NAME` で容量を予約できます。詳細は [Whole-Host Budget Before Production](SKILL.md#whole-host-budget-before-production) を参照してください。
+
 ### 監査・改訂する内容
 
 - frontmatter のルーティング強度、文字数予算、切り詰め耐性
@@ -124,7 +126,7 @@ $skill-md-clarifier で /path/to/my-skill/SKILL.md を明確化してくださ�
 リポジトリのルートで直接呼び出します。対象には、スキルディレクトリ、`SKILL.md`、またはプラグインルートを指定できます。
 
 ```bash
-./bin/darwin-arm64/skill-md-clarifier-validator /path/to/target-skill
+./bin/darwin-arm64/skill-md-clarifier-validator /path/to/target-skill --rollout /path/to/host-rollout.jsonl --expected-skills 94 --context-window 272000
 ```
 
 終了コードは、`0` が決定的検査の成功、`1` が検出事項あり、`2` が使い方・
@@ -285,11 +287,13 @@ and reports enforcement and validation boundaries.
 
 ### Native validator
 
+The count and context in the example are illustrative: supply verified values for the target host. The native validator now requires whole-host budget evidence by default. It rereads full descriptions, counts UTF-8 bytes with the pinned Codex renderer formula, and rejects truncation or omissions. `--structure-only` proves structure only. Use `--plan-new NAME` with a future absolute SKILL.md path to reserve capacity before writing. See [Whole-Host Budget Before Production](SKILL.md#whole-host-budget-before-production).
+
 This repository includes a native validator for macOS on Apple Silicon. Run it directly
 from the repository root. The target may be a skill directory, a `SKILL.md`, or a plugin root:
 
 ```bash
-./bin/darwin-arm64/skill-md-clarifier-validator /path/to/target-skill
+./bin/darwin-arm64/skill-md-clarifier-validator /path/to/target-skill --rollout /path/to/host-rollout.jsonl --expected-skills 94 --context-window 272000
 ```
 
 Exit code `0` means the deterministic checks pass, `1` means findings were

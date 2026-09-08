@@ -5,6 +5,7 @@ use std::fs;
 use std::path::{Component, Path, PathBuf};
 
 pub const REPORT_SCHEMA_VERSION: &str = "skill-md-clarifier-validator/v1";
+pub mod budget;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -42,12 +43,14 @@ pub struct SkillReport {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AuditReport {
+    pub validation_scope: &'static str,
     pub schema_version: &'static str,
     pub status: ReportStatus,
     pub target_kind: TargetKind,
     pub target: String,
     pub findings: Vec<Finding>,
     pub skills: Vec<SkillReport>,
+    pub context_budget: Option<budget::BudgetReport>,
 }
 
 impl AuditReport {
@@ -176,6 +179,8 @@ pub fn audit_target(input: &Path) -> Result<AuditReport, OperationalError> {
         !top_level_findings.is_empty() || skills.iter().any(|report| !report.findings.is_empty());
 
     Ok(AuditReport {
+        validation_scope: "structure_only",
+        context_budget: None,
         schema_version: REPORT_SCHEMA_VERSION,
         status: if has_findings {
             ReportStatus::Findings
@@ -323,31 +328,11 @@ fn audit_skill(path: &Path) -> SkillReport {
     if let Some(description) = description {
         let characters = description.chars().count();
         report.description_characters = Some(characters);
-        if characters > 400 {
-            report.findings.push(Finding {
-                code: "DESCRIPTION_OVER_ROUTING_LIMIT",
-                severity: "error",
-                message: format!(
-                    "Frontmatter description is {characters} characters; deterministic routing policy requires compression to 400 or fewer."
-                ),
-                location: report.path.clone(),
-            });
-        } else if characters > 320 {
-            report.findings.push(Finding {
-                code: "DESCRIPTION_OVER_ROUTING_BUDGET",
-                severity: "warning",
-                message: format!(
-                    "Frontmatter description is {characters} characters; compress it to the ordinary routing budget of 320 or fewer."
-                ),
-                location: report.path.clone(),
-            });
-        }
-        if characters > 1024 {
+        if characters > budget::DESCRIPTION_CHARACTER_LIMIT {
             report.findings.push(Finding {
                 code: "DESCRIPTION_OVER_FORMAT_LIMIT",
                 severity: "error",
-                message: "Frontmatter description exceeds the 1024-character format limit."
-                    .to_string(),
+                message: format!("Frontmatter description exceeds the {}-character format limit.", budget::DESCRIPTION_CHARACTER_LIMIT),
                 location: report.path.clone(),
             });
         }
@@ -542,7 +527,7 @@ mod tests {
     #[test]
     fn long_description_is_a_finding() {
         let temp = tempfile::tempdir().expect("create temp directory");
-        let description = format!("Audit {}", "x".repeat(410));
+        let description = format!("Audit {}", "x".repeat(1024));
         write_valid_skill(temp.path(), &description);
         let report = audit_target(temp.path()).expect("audit target");
         assert_eq!(report.exit_code(), 1);
@@ -550,7 +535,7 @@ mod tests {
             report.skills[0]
                 .findings
                 .iter()
-                .any(|finding| finding.code == "DESCRIPTION_OVER_ROUTING_LIMIT")
+                .any(|finding| finding.code == "DESCRIPTION_OVER_FORMAT_LIMIT")
         );
     }
 

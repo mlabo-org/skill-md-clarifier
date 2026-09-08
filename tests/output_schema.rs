@@ -8,6 +8,29 @@ fn output_schema() -> Value {
     .expect("output schema must be valid JSON")
 }
 
+#[test]
+fn host_budget_evidence_requires_count_and_one_window_decision() {
+    let schema: Value = serde_json::from_str(include_str!(
+        "../schemas/local-capability/audit-edit-skill-md-input.schema.json"
+    ))
+    .unwrap();
+    let validator = validator_for(&schema).unwrap();
+    let mut request = json!({"target":{"skillPath":"/skills/sample/SKILL.md"},"operation":"audit","budgetEvidence":{"hostPromptPath":"/tmp/host.txt","expectedSkills":94,"contextWindow":272000}});
+    assert!(validator.is_valid(&request));
+    request["budgetEvidence"]["unknownContext"] = json!(true);
+    assert!(!validator.is_valid(&request));
+    request["budgetEvidence"]
+        .as_object_mut()
+        .unwrap()
+        .remove("contextWindow");
+    assert!(validator.is_valid(&request));
+    request["budgetEvidence"]
+        .as_object_mut()
+        .unwrap()
+        .remove("expectedSkills");
+    assert!(!validator.is_valid(&request));
+}
+
 fn completed_result() -> Value {
     json!({
         "resultStatus": "completed",

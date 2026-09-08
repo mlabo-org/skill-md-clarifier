@@ -58,6 +58,110 @@
       "uniqueItems": true,
       "default": [],
       "description": "Known issues or focus areas supplied by the caller; the authoritative skill still determines the complete required audit."
+    },
+    "budgetEvidence": {
+      "type": "object",
+      "description": "Evidence for the target host. Missing evidence cannot establish routing acceptance. Do not substitute skills/list for the actual host prompt.",
+      "properties": {
+        "hostPromptPath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rolloutPath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expectedSkills": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "contextWindow": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "unknownContext": {
+          "const": true
+        },
+        "maxContextTokens": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sourceRuntimeMappings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "source",
+              "runtime"
+            ],
+            "properties": {
+              "source": {
+                "type": "string",
+                "minLength": 1
+              },
+              "runtime": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "expectedSkills"
+      ],
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "required": [
+                "hostPromptPath"
+              ],
+              "not": {
+                "required": [
+                  "rolloutPath"
+                ]
+              }
+            },
+            {
+              "required": [
+                "rolloutPath"
+              ],
+              "not": {
+                "required": [
+                  "hostPromptPath"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "oneOf": [
+            {
+              "required": [
+                "contextWindow"
+              ],
+              "not": {
+                "required": [
+                  "unknownContext"
+                ]
+              }
+            },
+            {
+              "required": [
+                "unknownContext"
+              ],
+              "not": {
+                "required": [
+                  "contextWindow"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "additionalProperties": false
     }
   },
   "additionalProperties": false

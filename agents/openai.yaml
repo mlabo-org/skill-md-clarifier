@@ -1,4 +1,4 @@
 interface:
   display_name: "SKILL.md 明確化監査"
-  short_description: "Audit SKILL.md decision clarity, routing, and policy preservation"
-  default_prompt: "Use $skill-md-clarifier to audit or revise one SKILL.md or plugin root for interpretation drift (解釈ぶれ), policy-preserving workflow clarity, routing, production-logic leaks, boundaries, and metadata with the native validator."
+  short_description: "Audit SKILL.md clarity, routing, and whole-host context budget"
+  default_prompt: "Use $skill-md-clarifier to audit or revise one SKILL.md or plugin root. Measure host catalog capacity before authoring, preserve invocation terms and policy, and validate full descriptions without truncation."
