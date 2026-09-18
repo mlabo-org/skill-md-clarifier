@@ -66,7 +66,7 @@ validator、compiler、state machine、またはテストなどの実行可能�
 └── agents-md-clarifier/
 ```
 
-実行契約は [SKILL.md](SKILL.md) と、そこから参照する共通基準です。このREADMEは利用説明です。
+実行契約は [SKILL.md](SKILL.md) と、該当する分岐から参照する資料です。このREADMEは利用説明です。
 
 ### 正本と discovery entry
 
@@ -133,7 +133,7 @@ $skill-md-clarifier で /path/to/my-skill/SKILL.md を明確化してくださ�
 読み取り・解析エラーです。対象解決、frontmatter、ルーティング用説明文、実行契約の宣言、
 隣接メタデータなどを検査します。指示の理解やモデル間の結果一致を測定する検査ではありません。
 
-バイナリがない場合の正本からのビルド手順は、[Native Validator](SKILL.md#native-validator)を参照してください。
+バイナリがない場合の正本からのビルド手順は、[Native Validator Materialization](references/validator-build.md)を参照してください。
 同梱バイナリの対象以外のOS・CPUで動作するという主張はしていません。
 
 ### リポジトリ構成
@@ -145,7 +145,10 @@ $skill-md-clarifier で /path/to/my-skill/SKILL.md を明確化してくださ�
 │   └── openai.yaml
 ├── local-capability-manifest.json
 ├── references/
-│   └── instruction-clarity.md
+│   ├── instruction-clarity.md
+│   ├── description-comparison.md
+│   ├── catalog-budget.md
+│   └── validator-build.md
 ├── schemas/
 │   └── local-capability/
 │       ├── audit-edit-skill-md-input.schema.json
@@ -230,7 +233,7 @@ install them under the same parent directory with these names:
 └── agents-md-clarifier/
 ```
 
-The execution contract is [SKILL.md](SKILL.md) and the shared criteria it references.
+The execution contract is [SKILL.md](SKILL.md) and the resources referenced by the applicable branch.
 This README explains how to use them.
 
 ### Source of truth and discovery entry
@@ -302,7 +305,7 @@ frontmatter, routing descriptions, execution-contract declarations, adjacent met
 and related structural requirements. It does not measure instruction comprehension or
 agreement between model executions.
 
-If the binary is missing, see [Native Validator](SKILL.md#native-validator) for the source
+If the binary is missing, see [Native Validator Materialization](references/validator-build.md) for the source
 build procedure. The bundled binary does not establish support for other operating systems
 or CPU architectures.
 
@@ -315,7 +318,10 @@ or CPU architectures.
 │   └── openai.yaml
 ├── local-capability-manifest.json
 ├── references/
-│   └── instruction-clarity.md
+│   ├── instruction-clarity.md
+│   ├── description-comparison.md
+│   ├── catalog-budget.md
+│   └── validator-build.md
 ├── schemas/
 │   └── local-capability/
 │       ├── audit-edit-skill-md-input.schema.json

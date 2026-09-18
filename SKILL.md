@@ -91,75 +91,38 @@ Treat a path under `/Users/suzukimakoto/.codex/plugins/cache/` as generated plug
 
 ## Native Validator
 
-Use the materialized validator at:
+Invoke the materialized binary directly, with one standalone skill root, one `SKILL.md`, or one plugin root:
 
 ```text
 <skill-md-clarifier-root>/bin/darwin-arm64/skill-md-clarifier-validator
 ```
 
-Invoke it directly with one standalone skill root, one `SKILL.md`, or one plugin root. For whole-host budget admission:
+Select the scope in Catalog Impact And Budget before authoring or invoking. From this skill root, the minimum commands are:
 
 ```bash
+# Unchanged catalog contribution
+./bin/darwin-arm64/skill-md-clarifier-validator <source-target> --structure-only
+# Existing description comparison; read Description Comparison first
+./bin/darwin-arm64/skill-md-clarifier-validator <source-target> --baseline-skill /absolute/source/SKILL.md=/absolute/task-temp/before-SKILL.md
+# Whole-host decision; read Whole-Host Catalog Budget first
 ./bin/darwin-arm64/skill-md-clarifier-validator <source-target> --rollout <target-host-rollout> --expected-skills <complete-host-count> --context-window <resolved-model-window>
 ```
 
-The validator owns deterministic checks for target kind, plugin manifest skills-path containment and recursive enumeration, YAML frontmatter parsing, the individual format limit, whole-host metadata budget, generic description openings, execution-contract declaration presence, cache-only targets, and adjacent `agents/openai.yaml` structure. Missing host budget evidence is an error in the default whole-host scope.
+The validator owns deterministic target resolution, plugin skills-path containment and enumeration, frontmatter, the individual format limit, whole-host budget, generic description openings, execution-contract declaration presence, cache-only targets, and adjacent `agents/openai.yaml` structure. Without a scope flag it uses whole-host mode, where missing required host evidence is an error. Structure-only does not establish host fit or admit a new skill; comparison proves only nonincreasing source contribution.
 
-Use `--structure-only` for changes that leave the catalog contribution unchanged. Its receipt plus the final semantic decision can complete that source change; it does not establish current whole-host fit or admit a new skill. For an existing description change under unchanged catalog conditions, use the separate comparison scope with one exact pre-edit file per audited skill:
-
-```bash
-./bin/darwin-arm64/skill-md-clarifier-validator <source-target> --baseline-skill /absolute/source/SKILL.md=/absolute/task-temp/before-SKILL.md
-```
-
-Repeat `--baseline-skill` for every enumerated skill in plugin mode. The native comparison checks unchanged names and nonincreasing normalized description costs in both UTF-8 bytes and Unicode scalar counts. A missing, duplicate, out-of-target, or same-file baseline fails; a name change or increase requires whole-host evidence. The caller establishes that each baseline is the exact pre-edit source and that the catalog conditions in Catalog Impact And Budget are unchanged. `contextBudget: null` and `hostBudgetStatus: not_measured` remain explicit: comparison success proves only the source contribution did not increase.
-
-Exit status is part of the contract:
-
-- `0`: deterministic checks passed
-- `1`: deterministic findings were emitted as JSON
-- `2`: usage, target resolution, read, or parse failure was emitted as JSON
-
-Do not use `cargo run` as the normal route. If the materialized binary is absent or its native source changed, materialize it from this skill root using a new task-owned temporary build directory. Confirm the manifest owner and exact target directory in the metadata output before building or cleaning:
-
-```bash
-clarifier_manifest="$PWD/Cargo.toml"
-clarifier_build_dir="$(mktemp -d "${TMPDIR:-/tmp}/skill-md-clarifier-build.XXXXXX")"
-CARGO_TARGET_DIR="$clarifier_build_dir" cargo metadata --locked --no-deps --format-version 1 --manifest-path "$clarifier_manifest"
-cargo build --locked --release --manifest-path "$clarifier_manifest" --target-dir "$clarifier_build_dir"
-mkdir -p bin/darwin-arm64
-install -m 755 "$clarifier_build_dir/release/skill-md-clarifier-validator" bin/darwin-arm64/skill-md-clarifier-validator
-cargo clean --manifest-path "$clarifier_manifest" --target-dir "$clarifier_build_dir"
-rmdir "$clarifier_build_dir"
-```
-
-If construction fails or is interrupted, clean that same verified temporary target with the shown `cargo clean` command and remove its empty task-created directory; preserve the stable binary and pre-existing build directories. The example is a materialization route, not an instruction to build for prose-only edits.
+Exit status: `0` means deterministic checks passed, `1` means findings, and `2` means usage, target, read, or parse failure. Findings and failures are emitted as JSON. If the binary is missing or native source changed, read [Native Validator Materialization](references/validator-build.md) and materialize it from source; prose-only edits do not require rebuilding.
 
 For a review-only request, run the selected scope on the current target and incorporate its receipt. For edits, select the scope and producer inputs before construction, then run its final invocation once. A pre-production capacity measurement is needed only when the selected change requires a whole-host allocation and applicable evidence is not already available.
 
 ## Catalog Impact And Budget
 
-The executable calculation follows [Codex rust-v0.153.4 render.rs](https://github.com/openai/codex/blob/rust-v0.153.4/codex-rs/ext/skills/src/render.rs) and the [official skills documentation](https://learn.chatgpt.com/docs/build-skills). The initial catalog, not each file separately, shares the budget. The validator uses per-line UTF-8 byte costs for token budgets, Unicode scalar counts for the unknown-window fallback, and the captured host alias table and its overhead. It counts complete descriptions, names, paths, separators, and newlines. It does not use an English/Japanese character multiplier as a substitute for counting the actual text. Version-pinned named constants in `src/budget.rs` own the shared-budget percentage, explicit cap, unknown-context fallback, UTF-8 token approximation, and individual format limit. The model context window is a runtime input, never a fixed model-size constant. Update those constants against the official source when adopting a changed specification; do not duplicate numeric rules in prose.
-
 Select the needed decision from the requested result and actual changed surfaces:
 
 - **Catalog contribution unchanged:** body, script, reference, asset, or UI-support edits with unchanged catalog name, description, locator, membership, root aliases, renderer, model window, and configured budget use structure-only validation plus the final semantic decision. Keep accurate routing metadata unchanged. Do not require host/model discovery, complete-catalog collection, allocation, or a repeated total measurement for that source change.
-- **Existing description changed, other catalog conditions unchanged:** bind the original meaning and exact pre-edit descriptions before authoring. A candidate constrained to nonincreasing bytes and scalar counts can use the native baseline comparison, without collecting the whole host or allocating again. Preserve the original files only as task-temporary comparison data outside discovery, then remove the task-created copies. This route neither proves nor clears an existing or unknown whole-host overflow. If growth is needed, select whole-host allocation before authoring that growth; do not use the comparison route for name/path/registration or catalog changes.
-- **Whole-host decision:** a new skill, increased contribution, changed catalog identity/registration/list/root layout, changed renderer/model window/budget, or a request to prove or remove host truncation requires evidence for the affected host conditions. Resolve only the changed or missing inputs. Reuse an existing measurement when its host/cwd, catalog membership, full metadata, locator/alias layout, renderer, model window, override, and source/runtime mapping still match. An unchanged source stage does not require a second measurement. Old numerical limits or another host's result do not establish current fit.
+- **Existing description changed, other catalog conditions unchanged:** bind the original meaning and exact pre-edit descriptions before authoring. A candidate constrained to nonincreasing bytes and scalar counts can use the native baseline comparison, without collecting the whole host or allocating again. Preserve the original files only as task-temporary comparison data outside discovery, then remove the task-created copies. Before authoring for this scope, read [Description Comparison](references/description-comparison.md). This route neither proves nor clears an existing or unknown whole-host overflow. If growth is needed, select whole-host allocation before authoring that growth; do not use the comparison route for name/path/registration or catalog changes.
+- **Whole-host decision:** a new skill, increased contribution, changed catalog identity/registration/list/root layout, changed renderer/model window/budget, or a request to prove or remove host truncation requires evidence for the affected host conditions. Resolve only the changed or missing inputs. Reuse an existing measurement when its host/cwd, catalog membership, full metadata, locator/alias layout, renderer, model window, override, and source/runtime mapping still match. An unchanged source stage does not require a second measurement. Before authoring or measuring for this scope, read [Whole-Host Catalog Budget](references/catalog-budget.md). Old numerical limits or another host's result do not establish current fit.
 
-For the whole-host decision:
-
-1. Resolve the target host, cwd, CLI renderer version, and actual resolved model context window from applicable current metadata/configuration or still-valid evidence. The smaller usable window reported by token usage is not the resolved window. A configured skills token override is supplied only when it actually exists, using `--max-context-tokens`. Use `--unknown-context` only when the window cannot be resolved; do not silently replace a known window with the fallback or alter runtime settings to obtain a pass.
-2. Obtain or reuse the actual host Skills fragment with its root aliases, names, and paths. The native `--rollout` reader extracts only the latest developer Skills fragment from the exact authorized local session; `--host-prompt` accepts an already captured fragment. Establish completeness for that host and pass `--expected-skills`. A catalog with omitted skills, unknown additional environment/orchestrator catalogs, inaccessible sources, or uncertain completeness cannot receive a whole-host pass. The App Server `skills/list` response alone is insufficient: it can omit plugin-provided entries present in the actual prompt. Do not scan unrelated sessions or copy private conversation contents into source.
-3. For an existing skill whose contribution must grow, obtain or reuse `targetDescriptionAllowance` for the unchanged pre-edit catalog. For a new skill, reserve its actual catalog name and future absolute `SKILL.md` path without creating a file:
-   ```bash
-   ./bin/darwin-arm64/skill-md-clarifier-validator /absolute/new-skill/SKILL.md --plan-new new-skill --host-prompt /absolute/host-skills.txt --expected-skills <count> --context-window <window>
-   ```
-   Give the producer that available budget in its reported units, the intended host/cwd, and required trigger words before authoring. A zero allowance or existing overflow blocks an unaccommodated addition or increase, not a separately valid body change or proven nonincreasing description change. Shortening just a new skill cannot fix pre-existing overflow. New plugin entries need their actual namespaced names and runtime paths reserved; do not substitute an unqualified source name.
-4. The validator rereads full descriptions from the captured files, so it never mistakes already-shortened prompt text for the original cost. For an installed plugin source edit, map each audited source path to its corresponding captured runtime path with repeated `--map SOURCE=RUNTIME`. Do not guess by matching names, double-count the source plus cache, or edit the cache. Measure the final candidate against the same unaffected host evidence; replace only evidence invalidated by changed conditions. Report source admission separately from subsequent authorized materialization and the live host's uptake. Unsupported locator formats fail explicitly.
-5. Meaning preservation is mandatory for every compression. Before authoring, bind the original task meaning, scope, applicable and excluded cases, distinctions from neighboring skills, required invocation terms in their original language, and strength of constraints as producer inputs. Never satisfy the budget by losing, weakening, broadening, or changing those meanings; never translate Japanese invocation terms away to save bytes. Move workflow detail, examples, or repeated explanation into the body or existing references only when selection-critical meaning remains available in the pre-load description. A distinction restored only after loading the body does not repair an ambiguous routing description. If a complete meaning-preserving description cannot fit, report the capacity blocker and leave the affected original unchanged; do not force a shorter candidate. `uniformExistingPrefixCharacters`, ASCII, and three-byte-Japanese figures are capacity measurements, not automatic truncation instructions or universal limits.
-6. A whole-host pass requires the final complete catalog to fit without description truncation or skill omission and without target findings. Missing evidence, a format-limit violation, or total overflow is not that pass merely because the CLI can still run. Keep whole-host findings visible and report their effect on the requested result: an unresolved host-overflow request remains incomplete, while a valid unchanged-contribution or proven nonincreasing source repair can complete with the environment overflow or unknown state reported separately. Do not hide warnings, change their colors, increase limits, disable skills, or rewrite other skills to force success without corresponding user authority. Never report that a warning disappeared without actual host evidence.
-
-Whole-host measurement supports the captured host filesystem catalog under the pinned renderer semantics. For a changed CLI renderer, root layout, or additional resource catalogs, resolve that difference before claiming exact parity. No fixed per-description length guarantees a fit at every skill count. The official individual format maximum is not a recommended authoring length.
+Meaning preservation is mandatory for every compression. Before authoring, bind the original task meaning, scope, applicable and excluded cases, distinctions from neighboring skills, required invocation terms in their original language, and strength of constraints as producer inputs. Never satisfy the budget by losing, weakening, broadening, or changing those meanings; never translate Japanese invocation terms away to save bytes. Move workflow detail, examples, or repeated explanation into the body or existing references only when selection-critical meaning remains available in the pre-load description. A distinction restored only after loading the body does not repair an ambiguous routing description. If a complete meaning-preserving description cannot fit, report the capacity blocker and leave the affected original unchanged; do not force a shorter candidate.
 
 ## Audit And Edit Workflow
 
