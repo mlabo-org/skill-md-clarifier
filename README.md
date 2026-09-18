@@ -34,7 +34,7 @@
 レビュー依頼は読み取り専用で、指摘と根拠を返します。編集を依頼された場合にだけ正本を変更します。
 共通基準の導入によって、別の監査工程、モデル比較、自動的な書き直しループは増えません。
 
-予算は単体の文字数だけでなく、対象ホストの実際の一覧全体で判定します。既定ではホストの入力とモデルのコンテキスト長が必要です。日本語の呼び出し語を保持し、説明の短縮・欠落が必要な状態を合格にしません。新規作成前は `--plan-new NAME` で容量を予約できます。詳細は [Whole-Host Budget Before Production](SKILL.md#whole-host-budget-before-production) を参照してください。
+検証範囲は一覧容量への影響で選びます。説明・登録などが変わらない本文修正は `--structure-only` と意味確認で完了できます。既存説明文の修正は、他の一覧条件が同じなら `--baseline-skill SOURCE=BEFORE` で変更前の正本と比べ、容量を増やしていないことを確認できます。全体容量はこの比較だけでは未測定のままです。新規追加・容量増加・一覧やモデル条件の変更、および警告の解消確認には実際の一覧全体の証拠が必要で、同条件の証拠は再利用します。日本語の呼び出し語と意味を保持し、切り詰め・欠落を全体容量の合格としません。新規作成前は `--plan-new NAME` で容量を予約できます。詳細は [Catalog Impact And Budget](SKILL.md#catalog-impact-and-budget) を参照してください。
 
 ### 監査・改訂する内容
 
@@ -287,7 +287,7 @@ and reports enforcement and validation boundaries.
 
 ### Native validator
 
-The count and context in the example are illustrative: supply verified values for the target host. The native validator now requires whole-host budget evidence by default. It rereads full descriptions, counts UTF-8 bytes with the pinned Codex renderer formula, and rejects truncation or omissions. `--structure-only` proves structure only. Use `--plan-new NAME` with a future absolute SKILL.md path to reserve capacity before writing. See [Whole-Host Budget Before Production](SKILL.md#whole-host-budget-before-production).
+The count and context in the example are illustrative: supply verified values for the target host. Whole-host admission rereads full descriptions, uses the pinned Codex renderer formula, and rejects truncation or omission. Select the scope by catalog impact: unchanged-contribution source edits use `--structure-only` plus semantic acceptance; existing descriptions under unchanged catalog conditions can use `--baseline-skill SOURCE=BEFORE` to prove nonincrease in both byte and character costs. Neither scope proves current host fit. New skills, growth, changed catalog/model conditions, and requests to clear host warnings require complete host evidence; reuse it when the relevant conditions still match. Use `--plan-new NAME` with a future absolute SKILL.md path to reserve new capacity before writing. See [Catalog Impact And Budget](SKILL.md#catalog-impact-and-budget).
 
 This repository includes a native validator for macOS on Apple Silicon. Run it directly
 from the repository root. The target may be a skill directory, a `SKILL.md`, or a plugin root:

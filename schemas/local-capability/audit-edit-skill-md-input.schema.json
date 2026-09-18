@@ -61,7 +61,7 @@
     },
     "budgetEvidence": {
       "type": "object",
-      "description": "Evidence for the target host. Missing evidence cannot establish routing acceptance. Do not substitute skills/list for the actual host prompt.",
+      "description": "Evidence for whole-host budget admission when that scope is required by catalog impact or the requested result. Reuse still-valid evidence. Missing evidence cannot establish host fit; unchanged-contribution source work uses its selected narrower scope. Do not substitute skills/list for the actual host prompt.",
       "properties": {
         "hostPromptPath": {
           "type": "string",

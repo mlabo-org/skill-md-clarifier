@@ -87,6 +87,84 @@ pub struct BudgetReport {
     uniform_three_byte_japanese_characters: usize,
     contributions: Vec<Contribution>,
 }
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DescriptionChange {
+    source: PathBuf,
+    baseline: PathBuf,
+    name_unchanged: bool,
+    before_bytes: usize,
+    after_bytes: usize,
+    before_characters: usize,
+    after_characters: usize,
+    nonincreasing: bool,
+}
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DescriptionChangeReport {
+    upstream: &'static str,
+    host_budget_status: &'static str,
+    nonincreasing: bool,
+    comparisons: Vec<DescriptionChange>,
+}
+
+/// A description that grows in neither counting unit cannot increase a line's
+/// cost under the pinned renderer when its name, locator and catalog are stable.
+/// This proves a source delta, never the current host's complete budget fit.
+pub fn compare_descriptions(
+    r: &mut AuditReport,
+    baselines: &[(PathBuf, PathBuf)],
+) -> Result<(), OperationalError> {
+    if r.skills.is_empty() || baselines.len() != r.skills.len() {
+        return Err(error("Supply exactly one pre-edit baseline for every audited skill"));
+    }
+    let mut seen = HashSet::new();
+    let mut comparisons = Vec::new();
+    for (source, baseline) in baselines {
+        if !source.is_absolute() || !baseline.is_absolute() || same_path(source, baseline) {
+            return Err(error("Baseline mapping requires absolute source and separate pre-edit file paths"));
+        }
+        let skill = r.skills.iter().find(|s| same_path(Path::new(&s.path), source))
+            .ok_or_else(|| error("Baseline source outside the audited target"))?;
+        if !seen.insert(skill.path.clone()) {
+            return Err(error("Duplicate baseline source"));
+        }
+        let (before_name, before) = metadata(baseline)?;
+        let (after_name, after) = metadata(Path::new(&skill.path))?;
+        let name_unchanged = before_name == after_name;
+        let before_characters = before.chars().count();
+        let after_characters = after.chars().count();
+        let nonincreasing = name_unchanged
+            && after.len() <= before.len()
+            && after_characters <= before_characters;
+        if !nonincreasing {
+            r.status = ReportStatus::Findings;
+            r.findings.push(Finding {
+                code: "DESCRIPTION_CHANGE_REQUIRES_HOST_BUDGET",
+                severity: "error",
+                message: "The name changed or the description increased in a renderer counting unit. This comparison cannot admit the change; use complete host budget evidence for the affected catalog conditions.".into(),
+                location: skill.path.clone(),
+            });
+        }
+        comparisons.push(DescriptionChange {
+            source: PathBuf::from(&skill.path),
+            baseline: baseline.clone(),
+            name_unchanged,
+            before_bytes: before.len(),
+            after_bytes: after.len(),
+            before_characters,
+            after_characters,
+            nonincreasing,
+        });
+    }
+    r.description_change = Some(DescriptionChangeReport {
+        upstream: UPSTREAM_SPEC,
+        host_budget_status: "not_measured",
+        nonincreasing: comparisons.iter().all(|c| c.nonincreasing),
+        comparisons,
+    });
+    Ok(())
+}
 fn error(s: impl Into<String>) -> OperationalError {
     OperationalError {
         code: "CONTEXT_BUDGET_INPUT_INVALID",
@@ -157,7 +235,7 @@ fn max_uniform(es: &[Entry], b: Budget, o: usize, a: bool, kind: u8) -> usize {
 }
 pub fn require_catalog(r: &mut AuditReport) {
     r.status = ReportStatus::Findings;
-    r.findings.push(Finding{code:"CONTEXT_BUDGET_UNVERIFIED",severity:"error",message:"Supply the complete actual host Skills fragment and resolved model context before routing acceptance. Individual length and skills/list alone cannot establish a warning-free catalog. --structure-only is explicitly limited to structural inspection.".into(),location:r.target.clone()})
+    r.findings.push(Finding{code:"CONTEXT_BUDGET_UNVERIFIED",severity:"error",message:"Supply the complete actual host Skills fragment and resolved model context before whole-host budget acceptance. Individual length, a nonincreasing description, and skills/list alone cannot establish a warning-free catalog. --structure-only and --baseline-skill have separate source scopes.".into(),location:r.target.clone()})
 }
 pub fn apply(
     r: &mut AuditReport,

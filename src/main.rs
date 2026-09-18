@@ -34,12 +34,13 @@ fn run() -> Result<(serde_json::Value, u8), OperationalError> {
         (None, None, None, None, None, None);
     let (mut unknown, mut structural) = (false, false);
     let mut maps = Vec::new();
+    let mut baselines = Vec::new();
     let mut reserve = None;
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--help" | "-h" => {
                 println!(
-                    "USAGE: skill-md-clarifier-validator TARGET [--host-prompt FILE | --rollout FILE] --expected-skills N (--context-window TOKENS | --unknown-context) [--max-context-tokens N] [--map SOURCE=RUNTIME] [--plan-new NAME]\n       skill-md-clarifier-validator TARGET --structure-only\n\nDefault: missing catalog is a finding, never a routing pass. Snapshot must be complete for the intended host/cwd; do not use skills/list as proof. Context is the resolved window, not the smaller usable window. Exit 0: selected scope passes; 1: findings; 2: invalid or unavailable input."
+                    "USAGE: skill-md-clarifier-validator TARGET [--host-prompt FILE | --rollout FILE] --expected-skills N (--context-window TOKENS | --unknown-context) [--max-context-tokens N] [--map SOURCE=RUNTIME] [--plan-new NAME]\n       skill-md-clarifier-validator TARGET --structure-only\n       skill-md-clarifier-validator TARGET --baseline-skill SOURCE=BEFORE [--baseline-skill SOURCE=BEFORE ...]\n\nDefault: missing catalog is a finding, never a host-budget pass. Baseline mode proves only nonincreasing descriptions for unchanged skill identities; supply one pre-edit source copy per audited skill and preserve catalog conditions. It does not measure host fit. Snapshot must be complete for the intended host/cwd; do not use skills/list as proof. Context is the resolved window, not the smaller usable window. Exit 0: selected scope passes; 1: findings; 2: invalid or unavailable input."
                 );
                 std::process::exit(0)
             }
@@ -90,6 +91,13 @@ fn run() -> Result<(serde_json::Value, u8), OperationalError> {
                     .ok_or_else(|| bad("Mapping requires SOURCE=RUNTIME"))?;
                 maps.push((PathBuf::from(s), PathBuf::from(r)))
             }
+            "--baseline-skill" => {
+                let m = args.next().ok_or_else(|| bad("Missing baseline mapping"))?;
+                let (s, p) = m
+                    .split_once('=')
+                    .ok_or_else(|| bad("Baseline requires SOURCE=BEFORE"))?;
+                baselines.push((PathBuf::from(s), PathBuf::from(p)))
+            }
             _ if arg.starts_with('-') => return Err(bad(format!("Unknown option {arg}"))),
             _ => {
                 if target.replace(arg).is_some() {
@@ -114,6 +122,19 @@ fn run() -> Result<(serde_json::Value, u8), OperationalError> {
             "--structure-only cannot be combined with budget evidence",
         ));
     }
+    if !baselines.is_empty()
+        && (structural
+            || prompt.is_some()
+            || rollout.is_some()
+            || window.is_some()
+            || unknown
+            || max_tokens.is_some()
+            || count.is_some()
+            || !maps.is_empty()
+            || reserve.is_some())
+    {
+        return Err(bad("--baseline-skill is a separate description-change scope; do not combine it with structure-only, host evidence, or planning"));
+    }
     let target = target.ok_or_else(|| bad("Target required"))?;
     if reserve.is_some() && (structural || !maps.is_empty() || Path::new(&target).exists()) {
         return Err(bad(
@@ -130,6 +151,7 @@ fn run() -> Result<(serde_json::Value, u8), OperationalError> {
             findings: vec![],
             skills: vec![],
             context_budget: None,
+            description_change: None,
         }
     } else {
         audit_target(Path::new(&target))?
@@ -177,6 +199,9 @@ fn run() -> Result<(serde_json::Value, u8), OperationalError> {
         } else {
             "structure_and_host_budget"
         };
+    } else if !baselines.is_empty() {
+        budget::compare_descriptions(&mut report, &baselines)?;
+        report.validation_scope = "structure_and_description_change";
     } else if !structural {
         budget::require_catalog(&mut report)
     }

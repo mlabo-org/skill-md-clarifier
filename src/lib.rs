@@ -51,6 +51,8 @@ pub struct AuditReport {
     pub findings: Vec<Finding>,
     pub skills: Vec<SkillReport>,
     pub context_budget: Option<budget::BudgetReport>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description_change: Option<budget::DescriptionChangeReport>,
 }
 
 impl AuditReport {
@@ -181,6 +183,7 @@ pub fn audit_target(input: &Path) -> Result<AuditReport, OperationalError> {
     Ok(AuditReport {
         validation_scope: "structure_only",
         context_budget: None,
+        description_change: None,
         schema_version: REPORT_SCHEMA_VERSION,
         status: if has_findings {
             ReportStatus::Findings
