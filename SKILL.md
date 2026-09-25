@@ -82,12 +82,12 @@ For a plugin root:
 
 ### Cache And Experiment Boundary
 
-Treat a path under `/Users/suzukimakoto/.codex/plugins/cache/` as generated plugin runtime cache.
+Treat a path under `/Users/suzukimakoto/.claude/plugins/cache/` as generated plugin runtime cache.
 
 - A review may cite observed cache bytes, but an edit must resolve the authoritative plugin source first.
-- Do not copy a cache skill into `/Users/suzukimakoto/.agents/skills/` under the same identity.
+- Do not copy a cache skill into `/Users/suzukimakoto/.claude/skills/` under the same identity.
 - For an explicitly requested experiment, use a separate non-discovery temporary directory, or create a distinctly named standalone skill only when the user authorizes that new source identity.
-- Do not create a source-to-runtime copy or refresh workflow for a standalone skill. Its directory under `/Users/suzukimakoto/.agents/skills/` is both source and USER-scope discovery entry.
+- Do not create a source-to-runtime copy or refresh workflow for a standalone skill. Its directory under `/Users/suzukimakoto/.claude/skills/` is both source and USER-scope discovery entry.
 
 ## Native Validator
 

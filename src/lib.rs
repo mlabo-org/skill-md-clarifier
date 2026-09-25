@@ -489,7 +489,9 @@ fn is_plugin_cache_path(path: &Path) -> bool {
         .collect::<Vec<_>>();
     parts
         .windows(3)
-        .any(|window| window[0] == ".codex" && window[1] == "plugins" && window[2] == "cache")
+        .any(|window| {
+            matches!(window[0], ".codex" | ".claude") && window[1] == "plugins" && window[2] == "cache"
+        })
 }
 
 fn display_path(path: &Path) -> String {
