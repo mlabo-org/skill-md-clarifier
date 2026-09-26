@@ -142,7 +142,7 @@ pub fn audit_target(input: &Path) -> Result<AuditReport, OperationalError> {
             vec![canonical.join("SKILL.md")],
             Vec::new(),
         )
-    } else if canonical.join(".claude-plugin").is_dir() {
+    } else if canonical.join(".claude-plugin").is_dir() || canonical.join("skills").is_dir() {
         let skills_root = resolve_plugin_skills_root(&canonical)?;
         let mut paths = Vec::new();
         collect_skill_files(&skills_root, &mut paths).map_err(|error| {
@@ -168,7 +168,7 @@ pub fn audit_target(input: &Path) -> Result<AuditReport, OperationalError> {
     } else {
         return Err(OperationalError::new(
             "TARGET_KIND_UNRESOLVED",
-            "The target is neither a standalone skill directory, a SKILL.md file, nor a Claude Code plugin root with a .claude-plugin directory.",
+            "The target is neither a standalone skill directory, a SKILL.md file, nor a Claude Code plugin root with a .claude-plugin or skills directory.",
             Some(&canonical),
         ));
     };
@@ -551,6 +551,18 @@ mod tests {
         write_valid_skill(
             &temp.path().join("skills/nested/sample"),
             "Audit nested sample SKILL.md routing metadata.",
+        );
+        let report = audit_target(temp.path()).expect("audit plugin");
+        assert_eq!(report.exit_code(), 0);
+        assert_eq!(report.skills.len(), 1);
+    }
+
+    #[test]
+    fn plugin_source_with_only_skills_directory_is_a_plugin_root() {
+        let temp = tempfile::tempdir().expect("create temp directory");
+        write_valid_skill(
+            &temp.path().join("skills/sample"),
+            "Audit sample SKILL.md routing metadata.",
         );
         let report = audit_target(temp.path()).expect("audit plugin");
         assert_eq!(report.exit_code(), 0);

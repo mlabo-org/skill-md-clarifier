@@ -66,7 +66,7 @@ Resolve exactly one target before reading or editing target files:
 1. Use an explicit `SKILL.md` path supplied by the user.
 2. Otherwise use a structured skill reference containing a path.
 3. Otherwise, if the current directory contains `SKILL.md`, use that file.
-4. Otherwise use an explicitly named local plugin source root, identified by its `.claude-plugin/` directory.
+4. Otherwise use an explicitly named local plugin source root, identified by a `.claude-plugin/` or `skills/` directory.
 5. Otherwise use a named skill's verified source-of-truth path.
 6. If more than one target remains plausible, stop and ask for the exact target.
 
