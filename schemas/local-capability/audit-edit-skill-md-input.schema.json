@@ -40,7 +40,7 @@
           "additionalProperties": false
         }
       ],
-      "description": "Exactly one target kind. A plugin root is audited through its manifest-declared contained SKILL.md contracts."
+      "description": "Exactly one target kind. A plugin root is audited through the SKILL.md contracts contained in its skills directory."
     },
     "operation": {
       "enum": [

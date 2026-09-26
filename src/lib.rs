@@ -142,13 +142,13 @@ pub fn audit_target(input: &Path) -> Result<AuditReport, OperationalError> {
             vec![canonical.join("SKILL.md")],
             Vec::new(),
         )
-    } else if canonical.join(".codex-plugin/plugin.json").is_file() {
-        let skills_root = resolve_manifest_skills_root(&canonical)?;
+    } else if canonical.join(".claude-plugin").is_dir() {
+        let skills_root = resolve_plugin_skills_root(&canonical)?;
         let mut paths = Vec::new();
         collect_skill_files(&skills_root, &mut paths).map_err(|error| {
             OperationalError::new(
                 "PLUGIN_SKILLS_ENUMERATION_FAILED",
-                format!("Could not enumerate the manifest-declared skills directory: {error}"),
+                format!("Could not enumerate the plugin skills directory: {error}"),
                 Some(&skills_root),
             )
         })?;
@@ -157,7 +157,7 @@ pub fn audit_target(input: &Path) -> Result<AuditReport, OperationalError> {
             vec![Finding {
                 code: "PLUGIN_SKILLS_EMPTY",
                 severity: "error",
-                message: "The manifest-declared skills directory contains no SKILL.md files."
+                message: "The plugin skills directory contains no SKILL.md files."
                     .to_string(),
                 location: display_path(&skills_root),
             }]
@@ -168,7 +168,7 @@ pub fn audit_target(input: &Path) -> Result<AuditReport, OperationalError> {
     } else {
         return Err(OperationalError::new(
             "TARGET_KIND_UNRESOLVED",
-            "The target is neither a standalone skill directory, a SKILL.md file, nor a plugin root with .codex-plugin/plugin.json.",
+            "The target is neither a standalone skill directory, a SKILL.md file, nor a Claude Code plugin root with a .claude-plugin directory.",
             Some(&canonical),
         ));
     };
@@ -197,34 +197,40 @@ pub fn audit_target(input: &Path) -> Result<AuditReport, OperationalError> {
     })
 }
 
-fn resolve_manifest_skills_root(plugin_root: &Path) -> Result<PathBuf, OperationalError> {
-    let manifest_path = plugin_root.join(".codex-plugin/plugin.json");
-    let bytes = fs::read(&manifest_path).map_err(|error| {
-        OperationalError::new(
-            "PLUGIN_MANIFEST_READ_FAILED",
-            format!("Could not read the plugin manifest: {error}"),
-            Some(&manifest_path),
-        )
-    })?;
-    let manifest: serde_json::Value = serde_json::from_slice(&bytes).map_err(|error| {
-        OperationalError::new(
-            "PLUGIN_MANIFEST_PARSE_FAILED",
-            format!("Could not parse the plugin manifest as JSON: {error}"),
-            Some(&manifest_path),
-        )
-    })?;
-    let declared = manifest
-        .get("skills")
-        .and_then(serde_json::Value::as_str)
-        .ok_or_else(|| {
+// Plugin sources ship no plugin.json (claude-plugin-refresh generates it in staging), so the
+// skills directory is the default `skills/` unless a manifest declares a string `skills` path.
+fn resolve_plugin_skills_root(plugin_root: &Path) -> Result<PathBuf, OperationalError> {
+    let manifest_path = plugin_root.join(".claude-plugin/plugin.json");
+    let declared = if manifest_path.is_file() {
+        let bytes = fs::read(&manifest_path).map_err(|error| {
             OperationalError::new(
-                "PLUGIN_SKILLS_PATH_MISSING",
-                "The plugin manifest does not declare a string `skills` path.",
+                "PLUGIN_MANIFEST_READ_FAILED",
+                format!("Could not read the plugin manifest: {error}"),
                 Some(&manifest_path),
             )
         })?;
+        let manifest: serde_json::Value = serde_json::from_slice(&bytes).map_err(|error| {
+            OperationalError::new(
+                "PLUGIN_MANIFEST_PARSE_FAILED",
+                format!("Could not parse the plugin manifest as JSON: {error}"),
+                Some(&manifest_path),
+            )
+        })?;
+        match manifest.get("skills") {
+            None => "skills".to_string(),
+            Some(value) => value.as_str().map(str::to_owned).ok_or_else(|| {
+                OperationalError::new(
+                    "PLUGIN_SKILLS_PATH_NOT_STRING",
+                    "The plugin manifest `skills` field is not a string path.",
+                    Some(&manifest_path),
+                )
+            })?,
+        }
+    } else {
+        "skills".to_string()
+    };
 
-    let relative = Path::new(declared);
+    let relative = Path::new(&declared);
     if relative.as_os_str().is_empty()
         || relative
             .components()
@@ -380,15 +386,9 @@ fn audit_agents_metadata(skill_path: &Path, name: Option<&str>, findings: &mut V
     let Some(skill_root) = skill_path.parent() else {
         return;
     };
+    // agents/openai.yaml is optional Codex UI metadata that Claude Code does not read.
     let metadata_path = skill_root.join("agents/openai.yaml");
     if !metadata_path.exists() {
-        findings.push(Finding {
-            code: "AGENTS_OPENAI_YAML_ABSENT",
-            severity: "warning",
-            message: "Adjacent agents/openai.yaml is absent, so the UI routing surface cannot be checked."
-                .to_string(),
-            location: display_path(&metadata_path),
-        });
         return;
     }
 
@@ -545,17 +545,30 @@ mod tests {
     }
 
     #[test]
-    fn plugin_manifest_enumerates_nested_skills() {
+    fn plugin_source_without_manifest_enumerates_default_skills() {
         let temp = tempfile::tempdir().expect("create temp directory");
-        fs::create_dir_all(temp.path().join(".codex-plugin")).expect("create manifest dir");
-        fs::write(
-            temp.path().join(".codex-plugin/plugin.json"),
-            r#"{"skills":"./skills"}"#,
-        )
-        .expect("write manifest");
+        fs::create_dir_all(temp.path().join(".claude-plugin")).expect("create plugin dir");
         write_valid_skill(
             &temp.path().join("skills/nested/sample"),
             "Audit nested sample SKILL.md routing metadata.",
+        );
+        let report = audit_target(temp.path()).expect("audit plugin");
+        assert_eq!(report.exit_code(), 0);
+        assert_eq!(report.skills.len(), 1);
+    }
+
+    #[test]
+    fn plugin_manifest_declared_skills_path_is_used() {
+        let temp = tempfile::tempdir().expect("create temp directory");
+        fs::create_dir_all(temp.path().join(".claude-plugin")).expect("create plugin dir");
+        fs::write(
+            temp.path().join(".claude-plugin/plugin.json"),
+            r#"{"name":"sample","skills":"./custom"}"#,
+        )
+        .expect("write manifest");
+        write_valid_skill(
+            &temp.path().join("custom/sample"),
+            "Audit custom sample SKILL.md routing metadata.",
         );
         let report = audit_target(temp.path()).expect("audit plugin");
         assert_eq!(report.exit_code(), 0);

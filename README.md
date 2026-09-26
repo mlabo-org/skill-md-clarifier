@@ -44,7 +44,7 @@
 - プラグイン内スキルの網羅性と、ソース・キャッシュ・実行環境の境界
 - 実行可能な強制箇所を持たない production decision logic
 - スキル固有の担当範囲、推論・ワークフロー・停止条件の漏れ
-- `tool_search` の未検出、過剰発火、発火不足、スコープ漏れ
+- スキル発見時の未検出、過剰発火、発火不足、スコープ漏れ
 - native validator による決定的な構造・メタデータ検査
 
 UI メタデータは簡潔に保ち、成果物の有効性に関する判断は、ソース、スキーマ、
@@ -210,7 +210,7 @@ The shared criteria do not add another audit stage, model comparison, or automat
 - plugin-contained skill coverage and source/cache/runtime boundaries
 - production decision logic that lacks executable enforcement
 - skill-specific ownership, reasoning, workflow, and stop-condition gaps
-- `tool_search` misses, over-triggering, under-triggering, and scope leakage
+- skill-discovery misses, over-triggering, under-triggering, and scope leakage
 - deterministic structural and metadata checks through the native validator
 
 The skill keeps UI metadata concise and leaves artifact-validity decisions in

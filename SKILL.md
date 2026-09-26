@@ -52,8 +52,8 @@ Use this skill to:
 - create or revise a `SKILL.md` as a Codex-readable local execution contract
 - review weak triggers, routing-budget problems, truncation risk, workflow gaps, or hard-to-apply wording
 - align frontmatter with `agents/openai.yaml`, plugin metadata, or tool descriptions
-- diagnose `tool_search` misses, over-triggering, under-triggering, or body-only trigger terms
-- audit plugin-contained skills through the plugin manifest's declared skills directory
+- diagnose skill-discovery misses, over-triggering, under-triggering, or body-only trigger terms
+- audit plugin-contained skills through the plugin's skills directory
 - separate target-domain production decisions from routing and invocation prose
 - tighten skill-specific browser, subagent, Python, file-edit, plugin/cache, or Git mechanics
 
@@ -66,7 +66,7 @@ Resolve exactly one target before reading or editing target files:
 1. Use an explicit `SKILL.md` path supplied by the user.
 2. Otherwise use a structured skill reference containing a path.
 3. Otherwise, if the current directory contains `SKILL.md`, use that file.
-4. Otherwise use an explicitly named local plugin source root and its `.codex-plugin/plugin.json`.
+4. Otherwise use an explicitly named local plugin source root, identified by its `.claude-plugin/` directory.
 5. Otherwise use a named skill's verified source-of-truth path.
 6. If more than one target remains plausible, stop and ask for the exact target.
 
@@ -74,11 +74,11 @@ Do not search parent directories for a target `SKILL.md` by default.
 
 For a plugin root:
 
-- read `.codex-plugin/plugin.json`
-- resolve its string `skills` path as a contained relative directory
+- resolve the skills directory as the string `skills` path in `.claude-plugin/plugin.json` when that manifest declares one, otherwise `skills/`; plugin sources normally ship no `plugin.json` because `claude-plugin-refresh` generates it in staging
+- require that directory to be contained in the plugin root
 - recursively enumerate every `SKILL.md` below that directory, regardless of nesting depth or directory name
 - audit every enumerated skill and its adjacent `agents/openai.yaml` when present
-- report an empty declared skills directory as a finding rather than silently passing it
+- report an empty skills directory as a finding rather than silently passing it
 
 ### Cache And Experiment Boundary
 
@@ -135,7 +135,7 @@ Meaning preservation is mandatory for every compression. Before authoring, bind 
    - frontmatter/body promise alignment
    - strongest trigger terms appearing early enough to route before body load
    - alignment across `SKILL.md`, `agents/openai.yaml`, plugin metadata, and exposed tool descriptions
-   - `tool_search` terms, aliases, product names, and failure words needed for discovery
+   - skill-discovery terms, aliases, product names, and failure words needed for discovery
    - workflow and first-action clarity under Shared Clarity Criteria, including concrete input-to-output decisions and any interpretation-changing missing relation
    - exact tool, browser, file, source/cache, external-effect, and stop boundaries
    - target-domain production rules and their executable enforcement points
@@ -163,7 +163,7 @@ The native validator owns deterministic length, opening, and required-field deci
 - Add the execution-contract declaration near the start only when an equivalent declaration is absent.
 - Preserve the intended skill scope, user intent, priority order, safety constraints, local terminology, and authoritative resource paths.
 - Rewrite only what is needed to remove an observed routing, workflow, metadata, boundary, or target-domain enforcement defect.
-- Update adjacent `agents/openai.yaml` only when it is missing or stale for the changed capability.
+- Update an existing adjacent `agents/openai.yaml` only when it is stale for the changed capability. It is optional Codex UI metadata that Claude Code does not read; do not create it where it is absent.
 - Never edit plugin cache as the primary source.
 - Do not create a second audit, reviewer, or validator for a decision already owned by the native validator or an applicable higher contract.
 
