@@ -6,7 +6,7 @@ description: "Audit/edit SKILL.md or plugin skills: 解釈ぶれ, routing, conte
 # SKILL.md Clarifier
 
 This `SKILL.md` is the local execution contract for this skill when the skill is selected.
-Codex must treat this file's trigger assumptions, workflow, tool boundaries, file boundaries, and output shape as binding instructions within this skill's scope.
+Claude Code must treat this file's trigger assumptions, workflow, tool boundaries, file boundaries, and output shape as binding instructions within this skill's scope.
 This file does not override system instructions, developer instructions, explicit user requests, applicable `AGENTS.md` files, or more specific local execution contracts.
 
 ## Overview
@@ -23,7 +23,7 @@ Apply them to the selected skill's first action, required inputs, branch and fal
 
 ## Scope Boundary
 
-`SKILL.md` is not a global constitution. It binds Codex only after the skill is selected or explicitly invoked.
+`SKILL.md` is not a global constitution. It binds Claude Code only after the skill is selected or explicitly invoked.
 
 - Read the applicable `AGENTS.md` before auditing or editing and report only concrete conflicts between that authority and the target.
 - Do not restate cross-cutting reasoning, acceptance, delegation, Git, or safety policy inside a target `SKILL.md`.
@@ -49,7 +49,7 @@ This boundary concerns the target workflow's production semantics. The clarifier
 
 Use this skill to:
 
-- create or revise a `SKILL.md` as a Codex-readable local execution contract
+- create or revise a `SKILL.md` as a Claude Code-readable local execution contract
 - review weak triggers, routing-budget problems, truncation risk, workflow gaps, or hard-to-apply wording
 - align frontmatter with `agents/openai.yaml`, plugin metadata, or tool descriptions
 - diagnose skill-discovery misses, over-triggering, under-triggering, or body-only trigger terms

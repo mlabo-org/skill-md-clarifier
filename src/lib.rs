@@ -118,7 +118,7 @@ pub fn audit_target(input: &Path) -> Result<AuditReport, OperationalError> {
     if is_plugin_cache_path(&canonical) {
         return Err(OperationalError::new(
             "CACHE_ONLY_TARGET",
-            "The target is inside the generated Codex plugin cache. Resolve the authoritative plugin source before editing or accepting it as source.",
+            "The target is inside a generated plugin cache. Resolve the authoritative plugin source before editing or accepting it as source.",
             Some(&canonical),
         ));
     }

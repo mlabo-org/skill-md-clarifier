@@ -70,35 +70,35 @@ validator、compiler、state machine、またはテストなどの実行可能�
 
 ### 正本と discovery entry
 
-この Git checkout が、メンテナ開発の物理正本であり、ローカルで有効な Codex
+この Git checkout が、メンテナ開発の物理正本であり、ローカルで有効な Claude Code
 skill の discovery entry です。別の standalone runtime copy や同期用の正本は
 作りません。GitHub の `origin` は、この checkout から公開する別ライフサイクルの
 統合先です。
 
-変更はこの checkout に適用します。Codex が source directory を直接 discovery
+変更はこの checkout に適用します。Claude Code が source directory を直接 discovery
 するため、インストール済みコピーや実行コピーを独立した正本として編集したり、
 別の runtime へ反映したりしません。
 
 ### インストール
 
-通常の直接インストールでは、公開リポジトリを Codex の単体スキルディレクトリへ
+通常の直接インストールでは、公開リポジトリを Claude Code の単体スキルディレクトリ（`~/.claude/skills`）へ
 clone します。
 
 ```bash
-mkdir -p "$HOME/.agents/skills"
-git clone https://github.com/mlabo-org/skill-md-clarifier.git "$HOME/.agents/skills/skill-md-clarifier"
+mkdir -p "$HOME/.claude/skills"
+git clone https://github.com/mlabo-org/skill-md-clarifier.git "$HOME/.claude/skills/skill-md-clarifier"
 ```
 
 `AGENTS.md` も監査する場合は、同じ親ディレクトリに関連スキルを追加します。
 
 ```bash
-git clone https://github.com/mlabo-org/agents-md-clarifier.git "$HOME/.agents/skills/agents-md-clarifier"
+git clone https://github.com/mlabo-org/agents-md-clarifier.git "$HOME/.claude/skills/agents-md-clarifier"
 ```
 
 上記は初回インストール用です。独自のスキルディレクトリを使う場合も、両方を同じ親へ配置してください。
 両方を導入済みの場合は、それぞれのcheckoutを更新し、共有ファイルを片方へ複製しないでください。
 
-インストール後は Codex を再起動するか、新しいタスクを開始してください。この
+インストール後は Claude Code を再起動するか、新しいタスクを開始してください。この
 方式では、clone した Git checkout がそのままローカルで有効なスキルディレクトリに
 なります。
 
@@ -239,35 +239,35 @@ This README explains how to use them.
 ### Source of truth and discovery entry
 
 This Git checkout is both the physical source of truth for maintainer development
-and the discovery entry for the locally active Codex skill. No separate standalone
+and the discovery entry for the locally active Claude Code skill. No separate standalone
 runtime copy or synchronization source is created. GitHub `origin` is a separate
 publication and integration lifecycle for this checkout.
 
-Make changes in this checkout. Codex discovers the source directory directly, so do
+Make changes in this checkout. Claude Code discovers the source directory directly, so do
 not edit an installed or runtime copy as an independent source of truth or propagate
 the result to another runtime.
 
 ### Installation
 
-For a normal direct installation, clone the public repository into the Codex
-standalone-skill directory:
+For a normal direct installation, clone the public repository into the Claude Code
+standalone-skill directory (`~/.claude/skills`):
 
 ```bash
-mkdir -p "$HOME/.agents/skills"
-git clone https://github.com/mlabo-org/skill-md-clarifier.git "$HOME/.agents/skills/skill-md-clarifier"
+mkdir -p "$HOME/.claude/skills"
+git clone https://github.com/mlabo-org/skill-md-clarifier.git "$HOME/.claude/skills/skill-md-clarifier"
 ```
 
 To audit `AGENTS.md` as well, add the related skill under the same parent directory:
 
 ```bash
-git clone https://github.com/mlabo-org/agents-md-clarifier.git "$HOME/.agents/skills/agents-md-clarifier"
+git clone https://github.com/mlabo-org/agents-md-clarifier.git "$HOME/.claude/skills/agents-md-clarifier"
 ```
 
 These commands are for a first installation. If you use another skill directory, keep both
 repositories under that same parent. When both are already installed, update their respective
 checkouts without copying the shared file into the other repository.
 
-Restart Codex or begin a new task after installation. In this installation model,
+Restart Claude Code or begin a new session after installation. In this installation model,
 the cloned Git checkout is also the locally active skill directory.
 
 ### Usage
