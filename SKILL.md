@@ -6,7 +6,7 @@ description: "Audit/edit SKILL.md or plugin skills: 解釈ぶれ, routing, conte
 # SKILL.md Clarifier
 
 This `SKILL.md` is the local execution contract for this skill when the skill is selected.
-Claude Code must treat this file's trigger assumptions, workflow, tool boundaries, file boundaries, and output shape as binding instructions within this skill's scope.
+The host agent (Codex or Claude Code) must treat this file's trigger assumptions, workflow, tool boundaries, file boundaries, and output shape as binding instructions within this skill's scope.
 This file does not override system instructions, developer instructions, explicit user requests, applicable `AGENTS.md` files, or more specific local execution contracts.
 
 ## Overview
@@ -23,7 +23,7 @@ Apply them to the selected skill's first action, required inputs, branch and fal
 
 ## Scope Boundary
 
-`SKILL.md` is not a global constitution. It binds Claude Code only after the skill is selected or explicitly invoked.
+`SKILL.md` is not a global constitution. It binds the host agent only after the skill is selected or explicitly invoked.
 
 - Read the applicable `AGENTS.md` before auditing or editing and report only concrete conflicts between that authority and the target.
 - Do not restate cross-cutting reasoning, acceptance, delegation, Git, or safety policy inside a target `SKILL.md`.
@@ -49,7 +49,7 @@ This boundary concerns the target workflow's production semantics. The clarifier
 
 Use this skill to:
 
-- create or revise a `SKILL.md` as a Claude Code-readable local execution contract
+- create or revise a `SKILL.md` as a local execution contract readable by Codex and Claude Code
 - review weak triggers, routing-budget problems, truncation risk, workflow gaps, or hard-to-apply wording
 - align frontmatter with `agents/openai.yaml`, plugin metadata, or tool descriptions
 - diagnose skill-discovery misses, over-triggering, under-triggering, or body-only trigger terms
@@ -66,7 +66,7 @@ Resolve exactly one target before reading or editing target files:
 1. Use an explicit `SKILL.md` path supplied by the user.
 2. Otherwise use a structured skill reference containing a path.
 3. Otherwise, if the current directory contains `SKILL.md`, use that file.
-4. Otherwise use an explicitly named local plugin source root, identified by a `.claude-plugin/` or `skills/` directory.
+4. Otherwise use an explicitly named local plugin source root, identified by `.codex-plugin/plugin.json`, a `.claude-plugin/` directory, or a `skills/` directory.
 5. Otherwise use a named skill's verified source-of-truth path.
 6. If more than one target remains plausible, stop and ask for the exact target.
 
@@ -74,7 +74,7 @@ Do not search parent directories for a target `SKILL.md` by default.
 
 For a plugin root:
 
-- resolve the skills directory as the string `skills` path in `.claude-plugin/plugin.json` when that manifest declares one, otherwise `skills/`; plugin sources normally ship no `plugin.json` because `claude-plugin-refresh` generates it in staging
+- resolve the skills directory for the resolved host: in Codex, the string `skills` path that `.codex-plugin/plugin.json` must declare; in Claude Code, the string `skills` path in `.claude-plugin/plugin.json` when that manifest declares one, otherwise `skills/` (Claude Code plugin sources normally ship no `plugin.json` because `claude-plugin-refresh` generates it in staging)
 - require that directory to be contained in the plugin root
 - recursively enumerate every `SKILL.md` below that directory, regardless of nesting depth or directory name
 - audit every enumerated skill and its adjacent `agents/openai.yaml` when present
@@ -82,12 +82,12 @@ For a plugin root:
 
 ### Cache And Experiment Boundary
 
-Treat a path under `/Users/suzukimakoto/.claude/plugins/cache/` as generated plugin runtime cache.
+Treat a path under `/Users/suzukimakoto/.codex/plugins/cache/` (Codex) or `/Users/suzukimakoto/.claude/plugins/cache/` (Claude Code) as generated plugin runtime cache.
 
 - A review may cite observed cache bytes, but an edit must resolve the authoritative plugin source first.
-- Do not copy a cache skill into `/Users/suzukimakoto/.claude/skills/` under the same identity.
+- Do not copy a cache skill into `/Users/suzukimakoto/.agents/skills/` or `/Users/suzukimakoto/.claude/skills/` under the same identity.
 - For an explicitly requested experiment, use a separate non-discovery temporary directory, or create a distinctly named standalone skill only when the user authorizes that new source identity.
-- Do not create a source-to-runtime copy or refresh workflow for a standalone skill. Its directory under `/Users/suzukimakoto/.claude/skills/` is both source and USER-scope discovery entry.
+- Do not create a source-to-runtime copy or refresh workflow for a standalone skill. Its directory under `/Users/suzukimakoto/.agents/skills/` is both source and USER-scope discovery entry; Codex reads it directly, and Claude Code reads it through the `/Users/suzukimakoto/.claude/skills/<name>` symlink, which is not a second source.
 
 ## Native Validator
 
@@ -165,7 +165,7 @@ The native validator owns deterministic length, opening, and required-field deci
 - Add the execution-contract declaration near the start only when an equivalent declaration is absent.
 - Preserve the intended skill scope, user intent, priority order, safety constraints, local terminology, and authoritative resource paths.
 - Rewrite only what is needed to remove an observed routing, workflow, metadata, boundary, or target-domain enforcement defect.
-- Update an existing adjacent `agents/openai.yaml` only when it is stale for the changed capability. It is optional Codex UI metadata that Claude Code does not read; do not create it where it is absent.
+- Update adjacent `agents/openai.yaml` only when it is missing or stale for the changed capability. It is Codex UI metadata that Claude Code does not read: the validator reports its absence only under Codex, and a Claude Code-only skill does not need one.
 - Never edit plugin cache as the primary source.
 - Do not create a second audit, reviewer, or validator for a decision already owned by the native validator or an applicable higher contract.
 

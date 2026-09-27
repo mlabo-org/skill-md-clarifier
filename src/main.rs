@@ -162,7 +162,7 @@ fn run() -> Result<(serde_json::Value, u8), OperationalError> {
             description_change: None,
         }
     } else {
-        audit_target(Path::new(&target))?
+        audit_target(Path::new(&target), host)?
     };
     let content = if let Some(p) = prompt {
         Some(std::fs::read_to_string(p).map_err(|e| bad(e.to_string()))?)

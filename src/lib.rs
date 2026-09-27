@@ -8,6 +8,8 @@ pub const REPORT_SCHEMA_VERSION: &str = "skill-md-clarifier-validator/v1";
 pub mod budget;
 pub mod host;
 
+use host::AgentHost;
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ReportStatus {
@@ -99,7 +101,7 @@ impl OperationalError {
     }
 }
 
-pub fn audit_target(input: &Path) -> Result<AuditReport, OperationalError> {
+pub fn audit_target(input: &Path, host: AgentHost) -> Result<AuditReport, OperationalError> {
     if !input.exists() {
         return Err(OperationalError::new(
             "TARGET_NOT_FOUND",
@@ -143,8 +145,11 @@ pub fn audit_target(input: &Path) -> Result<AuditReport, OperationalError> {
             vec![canonical.join("SKILL.md")],
             Vec::new(),
         )
-    } else if canonical.join(".claude-plugin").is_dir() || canonical.join("skills").is_dir() {
-        let skills_root = resolve_plugin_skills_root(&canonical)?;
+    } else if canonical.join(".codex-plugin/plugin.json").is_file()
+        || canonical.join(".claude-plugin").is_dir()
+        || canonical.join("skills").is_dir()
+    {
+        let skills_root = resolve_plugin_skills_root(&canonical, host)?;
         let mut paths = Vec::new();
         collect_skill_files(&skills_root, &mut paths).map_err(|error| {
             OperationalError::new(
@@ -169,14 +174,14 @@ pub fn audit_target(input: &Path) -> Result<AuditReport, OperationalError> {
     } else {
         return Err(OperationalError::new(
             "TARGET_KIND_UNRESOLVED",
-            "The target is neither a standalone skill directory, a SKILL.md file, nor a Claude Code plugin root with a .claude-plugin or skills directory.",
+            "The target is neither a standalone skill directory, a SKILL.md file, nor a plugin root with .codex-plugin/plugin.json, a .claude-plugin directory, or a skills directory.",
             Some(&canonical),
         ));
     };
 
     let skills = skill_paths
         .iter()
-        .map(|path| audit_skill(path))
+        .map(|path| audit_skill(path, host))
         .collect::<Vec<_>>();
     let has_findings =
         !top_level_findings.is_empty() || skills.iter().any(|report| !report.findings.is_empty());
@@ -198,11 +203,15 @@ pub fn audit_target(input: &Path) -> Result<AuditReport, OperationalError> {
     })
 }
 
-// Plugin sources ship no plugin.json (claude-plugin-refresh generates it in staging), so the
-// skills directory is the default `skills/` unless a manifest declares a string `skills` path.
-fn resolve_plugin_skills_root(plugin_root: &Path) -> Result<PathBuf, OperationalError> {
-    let manifest_path = plugin_root.join(".claude-plugin/plugin.json");
-    let declared = if manifest_path.is_file() {
+// Codex reads the skills path that `.codex-plugin/plugin.json` must declare. Claude Code plugin
+// sources normally ship no plugin.json (claude-plugin-refresh generates it in staging), so the
+// skills directory is `skills/` unless `.claude-plugin/plugin.json` declares a string `skills` path.
+fn resolve_plugin_skills_root(plugin_root: &Path, host: AgentHost) -> Result<PathBuf, OperationalError> {
+    let (manifest_path, manifest_required) = match host {
+        AgentHost::Codex => (plugin_root.join(".codex-plugin/plugin.json"), true),
+        AgentHost::ClaudeCode => (plugin_root.join(".claude-plugin/plugin.json"), false),
+    };
+    let declared = if manifest_required || manifest_path.is_file() {
         let bytes = fs::read(&manifest_path).map_err(|error| {
             OperationalError::new(
                 "PLUGIN_MANIFEST_READ_FAILED",
@@ -218,6 +227,13 @@ fn resolve_plugin_skills_root(plugin_root: &Path) -> Result<PathBuf, Operational
             )
         })?;
         match manifest.get("skills") {
+            None if manifest_required => {
+                return Err(OperationalError::new(
+                    "PLUGIN_SKILLS_PATH_MISSING",
+                    "The plugin manifest does not declare a string `skills` path.",
+                    Some(&manifest_path),
+                ));
+            }
             None => "skills".to_string(),
             Some(value) => value.as_str().map(str::to_owned).ok_or_else(|| {
                 OperationalError::new(
@@ -276,7 +292,7 @@ fn collect_skill_files(root: &Path, paths: &mut Vec<PathBuf>) -> std::io::Result
     Ok(())
 }
 
-fn audit_skill(path: &Path) -> SkillReport {
+fn audit_skill(path: &Path, host: AgentHost) -> SkillReport {
     let mut report = SkillReport {
         path: display_path(path),
         name: None,
@@ -379,17 +395,32 @@ fn audit_skill(path: &Path) -> SkillReport {
         });
     }
 
-    audit_agents_metadata(path, report.name.as_deref(), &mut report.findings);
+    audit_agents_metadata(path, report.name.as_deref(), host, &mut report.findings);
     report
 }
 
-fn audit_agents_metadata(skill_path: &Path, name: Option<&str>, findings: &mut Vec<Finding>) {
+fn audit_agents_metadata(
+    skill_path: &Path,
+    name: Option<&str>,
+    host: AgentHost,
+    findings: &mut Vec<Finding>,
+) {
     let Some(skill_root) = skill_path.parent() else {
         return;
     };
-    // agents/openai.yaml is optional Codex UI metadata that Claude Code does not read.
+    // agents/openai.yaml is Codex UI metadata; Claude Code does not read it, so its absence
+    // is reported only under Codex.
     let metadata_path = skill_root.join("agents/openai.yaml");
     if !metadata_path.exists() {
+        if host == AgentHost::Codex {
+            findings.push(Finding {
+                code: "AGENTS_OPENAI_YAML_ABSENT",
+                severity: "warning",
+                message: "Adjacent agents/openai.yaml is absent, so the UI routing surface cannot be checked."
+                    .to_string(),
+                location: display_path(&metadata_path),
+            });
+        }
         return;
     }
 
@@ -524,7 +555,7 @@ mod tests {
     fn valid_standalone_skill_passes() {
         let temp = tempfile::tempdir().expect("create temp directory");
         write_valid_skill(temp.path(), "Audit sample SKILL.md routing metadata.");
-        let report = audit_target(temp.path()).expect("audit target");
+        let report = audit_target(temp.path(), AgentHost::Codex).expect("audit target");
         assert_eq!(report.exit_code(), 0);
         assert!(report.findings.is_empty());
         assert!(report.skills[0].findings.is_empty());
@@ -535,7 +566,7 @@ mod tests {
         let temp = tempfile::tempdir().expect("create temp directory");
         let description = format!("Audit {}", "x".repeat(1024));
         write_valid_skill(temp.path(), &description);
-        let report = audit_target(temp.path()).expect("audit target");
+        let report = audit_target(temp.path(), AgentHost::Codex).expect("audit target");
         assert_eq!(report.exit_code(), 1);
         assert!(
             report.skills[0]
@@ -553,7 +584,7 @@ mod tests {
             &temp.path().join("skills/nested/sample"),
             "Audit nested sample SKILL.md routing metadata.",
         );
-        let report = audit_target(temp.path()).expect("audit plugin");
+        let report = audit_target(temp.path(), AgentHost::ClaudeCode).expect("audit plugin");
         assert_eq!(report.exit_code(), 0);
         assert_eq!(report.skills.len(), 1);
     }
@@ -565,7 +596,7 @@ mod tests {
             &temp.path().join("skills/sample"),
             "Audit sample SKILL.md routing metadata.",
         );
-        let report = audit_target(temp.path()).expect("audit plugin");
+        let report = audit_target(temp.path(), AgentHost::ClaudeCode).expect("audit plugin");
         assert_eq!(report.exit_code(), 0);
         assert_eq!(report.skills.len(), 1);
     }
@@ -583,8 +614,45 @@ mod tests {
             &temp.path().join("custom/sample"),
             "Audit custom sample SKILL.md routing metadata.",
         );
-        let report = audit_target(temp.path()).expect("audit plugin");
+        let report = audit_target(temp.path(), AgentHost::ClaudeCode).expect("audit plugin");
         assert_eq!(report.exit_code(), 0);
         assert_eq!(report.skills.len(), 1);
+    }
+
+    #[test]
+    fn codex_plugin_manifest_declares_skills_path() {
+        let temp = tempfile::tempdir().expect("create temp directory");
+        fs::create_dir_all(temp.path().join(".codex-plugin")).expect("create manifest dir");
+        fs::write(
+            temp.path().join(".codex-plugin/plugin.json"),
+            r#"{"skills":"./skills"}"#,
+        )
+        .expect("write manifest");
+        write_valid_skill(
+            &temp.path().join("skills/nested/sample"),
+            "Audit nested sample SKILL.md routing metadata.",
+        );
+        let report = audit_target(temp.path(), AgentHost::Codex).expect("audit plugin");
+        assert_eq!(report.exit_code(), 0);
+        assert_eq!(report.skills.len(), 1);
+    }
+
+    #[test]
+    fn codex_requires_its_plugin_manifest() {
+        let temp = tempfile::tempdir().expect("create temp directory");
+        write_valid_skill(&temp.path().join("skills/sample"), "Audit sample SKILL.md routing metadata.");
+        let error = audit_target(temp.path(), AgentHost::Codex).unwrap_err();
+        assert_eq!(error.code, "PLUGIN_MANIFEST_READ_FAILED");
+    }
+
+    #[test]
+    fn absent_openai_yaml_warns_only_under_codex() {
+        let temp = tempfile::tempdir().expect("create temp directory");
+        write_valid_skill(temp.path(), "Audit sample SKILL.md routing metadata.");
+        fs::remove_file(temp.path().join("agents/openai.yaml")).expect("remove metadata");
+        let codex = audit_target(temp.path(), AgentHost::Codex).expect("audit codex");
+        assert!(codex.skills[0].findings.iter().any(|f| f.code == "AGENTS_OPENAI_YAML_ABSENT"));
+        let claude = audit_target(temp.path(), AgentHost::ClaudeCode).expect("audit claude");
+        assert!(claude.skills[0].findings.is_empty());
     }
 }

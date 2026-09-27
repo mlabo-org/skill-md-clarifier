@@ -544,12 +544,12 @@ mod tests {
             "### Available skills\n- sample: Audit (file: {})\n",
             p.display()
         );
-        let mut r = crate::audit_target(&p).unwrap();
+        let mut r = crate::audit_target(&p, AgentHost::Codex).unwrap();
         apply(&mut r, &prompt, Budget::Characters(8000), 1, &[]).unwrap();
         assert!(r.context_budget.as_ref().unwrap().fits_without_truncation);
         assert_eq!(r.context_budget.as_ref().unwrap().active_skills, 1);
         assert!(apply(&mut r, &prompt, Budget::Characters(8000), 2, &[]).is_err());
-        let mut overflow = crate::audit_target(&p).unwrap();
+        let mut overflow = crate::audit_target(&p, AgentHost::Codex).unwrap();
         apply(&mut overflow, &prompt, Budget::ApproxTokens(1), 1, &[]).unwrap();
         assert!(
             !overflow
@@ -565,7 +565,7 @@ mod tests {
                 .any(|f| f.code == "CONTEXT_BUDGET_EXCEEDED")
         );
         let future = d.path().join("future/SKILL.md");
-        let mut plan = crate::audit_target(&p).unwrap();
+        let mut plan = crate::audit_target(&p, AgentHost::Codex).unwrap();
         plan.skills.clear();
         apply_with_reservation(
             &mut plan,
