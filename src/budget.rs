@@ -1,5 +1,5 @@
 //! Host catalog admission: Codex rust-v0.153.4 render.rs units and full lines.
-use crate::{AuditReport, Finding, OperationalError, ReportStatus};
+use crate::{AuditReport, Finding, OperationalError, ReportStatus, host::AgentHost};
 use serde::Serialize;
 use std::{
     collections::HashSet,
@@ -9,6 +9,10 @@ use std::{
 // Version-pinned upstream rules. Update this group when adopting a new Codex
 // specification; the model context window remains a runtime input.
 pub const UPSTREAM_SPEC: &str = "openai/codex rust-v0.153.4 ext/skills/src/render.rs";
+// Claude Code lists `description` followed by `when_to_use` for each skill. Its
+// shared listing budget has no published counting formula, so only the
+// nonincreasing comparison of that listed text is supported for this host.
+pub const CLAUDE_CODE_LISTING_SPEC: &str = "code.claude.com/docs/en/skills: listing text is description plus when_to_use";
 pub const CONTEXT_BUDGET_PERCENT: usize = 2;
 pub const PERCENT_DENOMINATOR: usize = 100;
 pub const EXPLICIT_TOKEN_BUDGET_CAP: usize = 10_000;
@@ -114,6 +118,7 @@ pub struct DescriptionChangeReport {
 pub fn compare_descriptions(
     r: &mut AuditReport,
     baselines: &[(PathBuf, PathBuf)],
+    host: AgentHost,
 ) -> Result<(), OperationalError> {
     if r.skills.is_empty() || baselines.len() != r.skills.len() {
         return Err(error("Supply exactly one pre-edit baseline for every audited skill"));
@@ -132,17 +137,29 @@ pub fn compare_descriptions(
         let (before_name, before) = metadata(baseline)?;
         let (after_name, after) = metadata(Path::new(&skill.path))?;
         let name_unchanged = before_name == after_name;
-        let before_characters = before.chars().count();
-        let after_characters = after.chars().count();
+        // Each listed part must be nonincreasing on its own, so the unpublished
+        // separator between description and when_to_use never needs counting.
+        let mut before_parts = vec![before];
+        let mut after_parts = vec![after];
+        if host == AgentHost::ClaudeCode {
+            before_parts.push(when_to_use(baseline)?);
+            after_parts.push(when_to_use(Path::new(&skill.path))?);
+        }
+        let bytes = |p: &[String]| p.iter().map(String::len).sum::<usize>();
+        let characters = |p: &[String]| p.iter().map(|s| s.chars().count()).sum::<usize>();
         let nonincreasing = name_unchanged
-            && after.len() <= before.len()
-            && after_characters <= before_characters;
+            && before_parts.iter().zip(&after_parts).all(|(b, a)| {
+                a.len() <= b.len() && a.chars().count() <= b.chars().count()
+            });
         if !nonincreasing {
             r.status = ReportStatus::Findings;
             r.findings.push(Finding {
                 code: "DESCRIPTION_CHANGE_REQUIRES_HOST_BUDGET",
                 severity: "error",
-                message: "The name changed or the description increased in a renderer counting unit. This comparison cannot admit the change; use complete host budget evidence for the affected catalog conditions.".into(),
+                message: match host {
+                    AgentHost::Codex => "The name changed or the description increased in a renderer counting unit. This comparison cannot admit the change; use complete host budget evidence for the affected catalog conditions.".into(),
+                    AgentHost::ClaudeCode => "The name changed or the listed description or when_to_use text increased in UTF-8 bytes or characters. This comparison cannot admit the change, and whole-host measurement is not supported for claude_code; check the live listing with /context or /doctor.".into(),
+                },
                 location: skill.path.clone(),
             });
         }
@@ -150,15 +167,18 @@ pub fn compare_descriptions(
             source: PathBuf::from(&skill.path),
             baseline: baseline.clone(),
             name_unchanged,
-            before_bytes: before.len(),
-            after_bytes: after.len(),
-            before_characters,
-            after_characters,
+            before_bytes: bytes(&before_parts),
+            after_bytes: bytes(&after_parts),
+            before_characters: characters(&before_parts),
+            after_characters: characters(&after_parts),
             nonincreasing,
         });
     }
     r.description_change = Some(DescriptionChangeReport {
-        upstream: UPSTREAM_SPEC,
+        upstream: match host {
+            AgentHost::Codex => UPSTREAM_SPEC,
+            AgentHost::ClaudeCode => CLAUDE_CODE_LISTING_SPEC,
+        },
         host_budget_status: "not_measured",
         nonincreasing: comparisons.iter().all(|c| c.nonincreasing),
         comparisons,
@@ -175,13 +195,16 @@ fn error(s: impl Into<String>) -> OperationalError {
 fn same_path(a: &Path, b: &Path) -> bool {
     a == b || matches!((fs::canonicalize(a),fs::canonicalize(b)),(Ok(a),Ok(b)) if a == b)
 }
-fn metadata(path: &Path) -> Result<(String, String), OperationalError> {
+fn frontmatter(path: &Path) -> Result<serde_yaml::Value, OperationalError> {
     let text = fs::read_to_string(path).map_err(|e| error(format!("{}: {e}", path.display())))?;
     let front = text
         .strip_prefix("---")
         .and_then(|s| s.split_once("\n---").map(|(f, _)| f))
         .ok_or_else(|| error("Missing frontmatter"))?;
-    let y: serde_yaml::Value = serde_yaml::from_str(front).map_err(|e| error(e.to_string()))?;
+    serde_yaml::from_str(front).map_err(|e| error(e.to_string()))
+}
+fn metadata(path: &Path) -> Result<(String, String), OperationalError> {
+    let y = frontmatter(path)?;
     Ok((
         y["name"]
             .as_str()
@@ -194,6 +217,18 @@ fn metadata(path: &Path) -> Result<(String, String), OperationalError> {
             .collect::<Vec<_>>()
             .join(" "),
     ))
+}
+/// Normalized `when_to_use` text, empty when the key is absent.
+fn when_to_use(path: &Path) -> Result<String, OperationalError> {
+    Ok(match &frontmatter(path)?["when_to_use"] {
+        serde_yaml::Value::Null => String::new(),
+        v => v
+            .as_str()
+            .ok_or_else(|| error("when_to_use must be a string"))?
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" "),
+    })
 }
 fn body(intro: &str, roots: &[String]) -> String {
     let mut l = vec!["## Skills".into(), intro.into()];

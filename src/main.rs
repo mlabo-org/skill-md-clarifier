@@ -1,4 +1,4 @@
-use skill_md_clarifier_validator::{OperationalError, audit_target, budget};
+use skill_md_clarifier_validator::{OperationalError, audit_target, budget, host::AgentHost};
 use std::{
     io::{self, Write},
     path::{Path, PathBuf},
@@ -29,6 +29,7 @@ fn bad(s: impl Into<String>) -> OperationalError {
     }
 }
 fn run() -> Result<(serde_json::Value, u8), OperationalError> {
+    let host = AgentHost::resolve();
     let mut args = std::env::args().skip(1);
     let (mut target, mut prompt, mut rollout, mut count, mut window, mut max_tokens) =
         (None, None, None, None, None, None);
@@ -40,7 +41,7 @@ fn run() -> Result<(serde_json::Value, u8), OperationalError> {
         match arg.as_str() {
             "--help" | "-h" => {
                 println!(
-                    "USAGE: skill-md-clarifier-validator TARGET [--host-prompt FILE | --rollout FILE] --expected-skills N (--context-window TOKENS | --unknown-context) [--max-context-tokens N] [--map SOURCE=RUNTIME] [--plan-new NAME]\n       skill-md-clarifier-validator TARGET --structure-only\n       skill-md-clarifier-validator TARGET --baseline-skill SOURCE=BEFORE [--baseline-skill SOURCE=BEFORE ...]\n\nDefault: missing catalog is a finding, never a host-budget pass. Baseline mode proves only nonincreasing descriptions for unchanged skill identities; supply one pre-edit source copy per audited skill and preserve catalog conditions. It does not measure host fit. Snapshot must be complete for the intended host/cwd; do not use skills/list as proof. Context is the resolved window, not the smaller usable window. Exit 0: selected scope passes; 1: findings; 2: invalid or unavailable input."
+                    "USAGE: skill-md-clarifier-validator TARGET [--host-prompt FILE | --rollout FILE] --expected-skills N (--context-window TOKENS | --unknown-context) [--max-context-tokens N] [--map SOURCE=RUNTIME] [--plan-new NAME]\n       skill-md-clarifier-validator TARGET --structure-only\n       skill-md-clarifier-validator TARGET --baseline-skill SOURCE=BEFORE [--baseline-skill SOURCE=BEFORE ...]\n\nDefault: missing catalog is a finding, never a host-budget pass. Baseline mode proves only nonincreasing descriptions for unchanged skill identities; supply one pre-edit source copy per audited skill and preserve catalog conditions. It does not measure host fit. Snapshot must be complete for the intended host/cwd; do not use skills/list as proof. Context is the resolved window, not the smaller usable window.\n\nHost: AGENT_HOST=codex|claude_code, else CLAUDECODE=1 means claude_code, else codex. Whole-host budget modes (default, --host-prompt, --rollout, --plan-new) follow the pinned Codex renderer and exit 2 with HOST_BUDGET_UNSUPPORTED under claude_code; --baseline-skill there compares description and when_to_use. Exit 0: selected scope passes; 1: findings; 2: invalid or unavailable input."
                 );
                 std::process::exit(0)
             }
@@ -136,6 +137,13 @@ fn run() -> Result<(serde_json::Value, u8), OperationalError> {
         return Err(bad("--baseline-skill is a separate description-change scope; do not combine it with structure-only, host evidence, or planning"));
     }
     let target = target.ok_or_else(|| bad("Target required"))?;
+    if host == AgentHost::ClaudeCode && !structural && baselines.is_empty() {
+        return Err(OperationalError {
+            code: "HOST_BUDGET_UNSUPPORTED",
+            message: "Whole-host catalog budget admission is not supported for host claude_code. The measured formula is the pinned Codex renderer; Claude Code documents only a listing budget of 1% of the context window (8,000-character fallback, skillListingBudgetFraction / SLASH_COMMAND_TOOL_CHAR_BUDGET), a 1,536-character per-skill cap (skillListingMaxDescChars), and dropping the least-used skills' descriptions on overflow, without a token-to-character conversion or entry format to measure against. Use --structure-only or --baseline-skill, and check the live listing with /context or /doctor. Set AGENT_HOST=codex only to measure a Codex catalog.".into(),
+            path: None,
+        });
+    }
     if reserve.is_some() && (structural || !maps.is_empty() || Path::new(&target).exists()) {
         return Err(bad(
             "--plan-new requires an absent future SKILL.md, complete budget evidence, and no mappings",
@@ -200,7 +208,7 @@ fn run() -> Result<(serde_json::Value, u8), OperationalError> {
             "structure_and_host_budget"
         };
     } else if !baselines.is_empty() {
-        budget::compare_descriptions(&mut report, &baselines)?;
+        budget::compare_descriptions(&mut report, &baselines, host)?;
         report.validation_scope = "structure_and_description_change";
     } else if !structural {
         budget::require_catalog(&mut report)

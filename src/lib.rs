@@ -6,6 +6,7 @@ use std::path::{Component, Path, PathBuf};
 
 pub const REPORT_SCHEMA_VERSION: &str = "skill-md-clarifier-validator/v1";
 pub mod budget;
+pub mod host;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "snake_case")]

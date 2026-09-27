@@ -8,8 +8,12 @@ fn skill(root: &Path, name: &str, description: &str) {
 }
 
 fn run(args: &[&str]) -> (i32, Value) {
+    run_as("codex", args)
+}
+
+fn run_as(host: &str, args: &[&str]) -> (i32, Value) {
     let output = Command::new(env!("CARGO_BIN_EXE_skill-md-clarifier-validator"))
-        .args(args).output().unwrap();
+        .env("AGENT_HOST", host).args(args).output().unwrap();
     let bytes = if output.stderr.is_empty() { &output.stdout } else { &output.stderr };
     (output.status.code().unwrap(), serde_json::from_slice(bytes).unwrap())
 }
@@ -60,4 +64,30 @@ fn source_scope_does_not_turn_unverified_or_overflowing_host_budget_into_a_pass(
     assert_eq!(code, 1);
     assert_eq!(report["contextBudget"]["fitsWithoutTruncation"], false);
     assert_eq!(report["findings"][0]["code"], "CONTEXT_BUDGET_EXCEEDED");
+}
+
+#[test]
+fn claude_code_host_rejects_whole_host_budget_and_counts_when_to_use() {
+    let dir = tempfile::tempdir().unwrap();
+    let before = dir.path().join("before");
+    let source = dir.path().join("source");
+    skill(&before, "sample", "Audit 日本語の経路。");
+    skill(&source, "sample", "Audit 日本語の経路。");
+    let target = source.join("SKILL.md").display().to_string();
+    let prompt = dir.path().join("host.txt");
+    fs::write(&prompt, format!("### Available skills\n- sample: Audit (file: {target})\n")).unwrap();
+    let whole_host = [&target as &str, "--host-prompt", prompt.to_str().unwrap(), "--expected-skills", "1", "--context-window", "200000"];
+    let (code, report) = run_as("claude_code", &whole_host);
+    assert_eq!(code, 2);
+    assert_eq!(report["error"]["code"], "HOST_BUDGET_UNSUPPORTED");
+    assert_eq!(run_as("claude_code", &[&target]).1["error"]["code"], "HOST_BUDGET_UNSUPPORTED");
+    assert_eq!(run_as("claude_code", &[&target, "--structure-only"]).0, 0);
+
+    fs::write(source.join("SKILL.md"), "---\nname: sample\ndescription: Audit 日本語の経路。\nwhen_to_use: 経路の確認\n---\nThis is a local execution contract.\n").unwrap();
+    let mapping = format!("{target}={}", before.join("SKILL.md").display());
+    let baseline = [&target as &str, "--baseline-skill", &mapping];
+    let (code, report) = run_as("claude_code", &baseline);
+    assert_eq!(code, 1);
+    assert_eq!(report["findings"][0]["code"], "DESCRIPTION_CHANGE_REQUIRES_HOST_BUDGET");
+    assert_eq!(run(&baseline).0, 0);
 }

@@ -129,6 +129,8 @@ $skill-md-clarifier で /path/to/my-skill/SKILL.md を明確化してくださ�
 ./bin/darwin-arm64/skill-md-clarifier-validator /path/to/target-skill --rollout /path/to/host-rollout.jsonl --expected-skills 94 --context-window 272000
 ```
 
+全体容量の測定（範囲指定なし、`--host-prompt`、`--rollout`、`--plan-new`）は Codex の一覧計算に固定されています。検査ツールは `AGENT_HOST`（`codex` か `claude_code`）、なければ `CLAUDECODE=1` で Claude Code、どちらもなければ Codex と判定し、Claude Code では全体容量の測定を `HOST_BUDGET_UNSUPPORTED`（終了コード 2）で断ります。Claude Code の一覧容量は計算式が公開されていないためです。`--structure-only` はそのまま使え、`--baseline-skill` は `description` と `when_to_use` の両方を比べます。詳しくは [Claude Code Host](references/catalog-budget.md#claude-code-host) を参照してください。
+
 終了コードは、`0` が決定的検査の成功、`1` が検出事項あり、`2` が使い方・
 読み取り・解析エラーです。対象解決、frontmatter、ルーティング用説明文、実行契約の宣言、
 隣接メタデータなどを検査します。指示の理解やモデル間の結果一致を測定する検査ではありません。
@@ -291,6 +293,8 @@ and reports enforcement and validation boundaries.
 ### Native validator
 
 The count and context in the example are illustrative: supply verified values for the target host. Whole-host admission rereads full descriptions, uses the pinned Codex renderer formula, and rejects truncation or omission. Select the scope by catalog impact: unchanged-contribution source edits use `--structure-only` plus semantic acceptance; existing descriptions under unchanged catalog conditions can use `--baseline-skill SOURCE=BEFORE` to prove nonincrease in both byte and character costs. Neither scope proves current host fit. New skills, growth, changed catalog/model conditions, and requests to clear host warnings require complete host evidence; reuse it when the relevant conditions still match. Use `--plan-new NAME` with a future absolute SKILL.md path to reserve new capacity before writing. See [Catalog Impact And Budget](SKILL.md#catalog-impact-and-budget).
+
+The validator resolves its host from `AGENT_HOST` (`codex` or `claude_code`), then `CLAUDECODE=1` (Claude Code), else Codex. Whole-host modes measure the pinned Codex renderer, so under Claude Code they exit `2` with `HOST_BUDGET_UNSUPPORTED`; Claude Code does not publish a measurable listing formula. `--structure-only` is unchanged and `--baseline-skill` also compares `when_to_use` there. See [Claude Code Host](references/catalog-budget.md#claude-code-host).
 
 This repository includes a native validator for macOS on Apple Silicon. Run it directly
 from the repository root. The target may be a skill directory, a `SKILL.md`, or a plugin root:
