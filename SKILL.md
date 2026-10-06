@@ -1,6 +1,6 @@
 ---
 name: skill-md-clarifier
-description: "Audit/edit SKILL.md or plugin skills: 解釈ぶれ, routing, context-budget warnings, metadata, and ownership. Native validator."
+description: "Audit/edit SKILL.md or plugin skills: 解釈ぶれ, routing, context-budget warnings, metadata, ownership via native validator."
 ---
 
 # SKILL.md Clarifier
