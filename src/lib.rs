@@ -203,9 +203,9 @@ pub fn audit_target(input: &Path, host: AgentHost) -> Result<AuditReport, Operat
     })
 }
 
-// Codex reads the skills path that `.codex-plugin/plugin.json` must declare. Claude Code plugin
-// sources normally ship no plugin.json (claude-plugin-refresh generates it in staging), so the
-// skills directory is `skills/` unless `.claude-plugin/plugin.json` declares a string `skills` path.
+// Codex reads the skills path that `.codex-plugin/plugin.json` must declare. A Claude Code
+// plugin.json is optional (the marketplace entry can supply the name), so the skills directory
+// is `skills/` unless `.claude-plugin/plugin.json` declares a string `skills` path.
 fn resolve_plugin_skills_root(plugin_root: &Path, host: AgentHost) -> Result<PathBuf, OperationalError> {
     let (manifest_path, manifest_required) = match host {
         AgentHost::Codex => (plugin_root.join(".codex-plugin/plugin.json"), true),

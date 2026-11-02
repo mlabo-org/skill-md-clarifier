@@ -74,7 +74,7 @@ Do not search parent directories for a target `SKILL.md` by default.
 
 For a plugin root:
 
-- resolve the skills directory for the resolved host: in Codex, the string `skills` path that `.codex-plugin/plugin.json` must declare; in Claude Code, the string `skills` path in `.claude-plugin/plugin.json` when that manifest declares one, otherwise `skills/` (Claude Code plugin sources normally ship no `plugin.json` because `claude-plugin-refresh` generates it in staging)
+- resolve the skills directory for the resolved host: in Codex, the string `skills` path that `.codex-plugin/plugin.json` must declare; in Claude Code, the string `skills` path in `.claude-plugin/plugin.json` when that manifest declares one, otherwise `skills/` (a Claude Code `plugin.json` is optional; without one the name comes from the marketplace entry)
 - require that directory to be contained in the plugin root
 - recursively enumerate every `SKILL.md` below that directory, regardless of nesting depth or directory name
 - audit every enumerated skill and its adjacent `agents/openai.yaml` when present
